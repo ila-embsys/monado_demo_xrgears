@@ -46,7 +46,7 @@ endif
 add_project_arguments([project_args], language: ['c', 'cpp'])
 
 vulkan_dep = dependency('vulkan')
-openxr_dep = compiler.find_library('openxr_loader')
+openxr_dep = dependency('openxr')
 
 # needed for clang
 m_dep = compiler.find_library('m')
