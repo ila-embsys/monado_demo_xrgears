@@ -288,9 +288,16 @@ _check_graphics_api_support(xr_example* self)
   XrGraphicsRequirementsVulkanKHR vk_reqs = {
     .type = XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR,
   };
-  XrResult result;
-  result = xrGetVulkanGraphicsRequirementsKHR(self->instance, self->system_id,
-                                              &vk_reqs);
+  PFN_xrGetVulkanGraphicsRequirementsKHR GetVulkanGraphicsRequirements = NULL;
+  XrResult result = xrGetInstanceProcAddr(
+    self->instance, "xrGetVulkanGraphicsRequirementsKHR",
+    (PFN_xrVoidFunction*)(&GetVulkanGraphicsRequirements));
+  if (!xr_result(self->instance, result,
+                 "Failed to retrieve OpenXR Vulkan function pointer!"))
+    return false;
+
+  result =
+    GetVulkanGraphicsRequirements(self->instance, self->system_id, &vk_reqs);
   if (!xr_result(self->instance, result,
                  "Failed to get Vulkan graphics requirements!"))
     return false;
