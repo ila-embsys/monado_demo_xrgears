@@ -262,7 +262,7 @@ public:
     }
   }
 
-  void
+  bool
   init()
   {
     init_vulkan();
@@ -272,6 +272,7 @@ public:
     if (!xr_init(&xr, instance->instance, physical_device, device,
                  vk_device->queue_family_indices.graphics, 0)) {
       xrg_log_e("OpenXR initialization failed.");
+      return false;
     }
 
     for (uint32_t i = 0; i < 2; i++) {
@@ -299,6 +300,8 @@ public:
       vk_device, queue, offscreen_passes[0]->render_pass, pipeline_cache);
 
     build_command_buffer();
+
+    return true;
   }
 
   void
@@ -447,7 +450,8 @@ int
 main(int argc, char *argv[])
 {
   app = new xrgears(argc, argv);
-  app->init();
+  if (!app->init())
+    return -1;
 
   signal(SIGINT, sigint_cb);
 
