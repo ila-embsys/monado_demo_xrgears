@@ -1,4 +1,4 @@
-project('xrgears', ['c', 'cpp'], version: '1.0.0',
+project('xrgears', ['c', 'cpp'], version: '1.0.1',
   meson_version: '>= 0.45.1'
 )
 
