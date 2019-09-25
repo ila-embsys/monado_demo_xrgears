@@ -40,7 +40,7 @@ xr_result_to_string(XrResult result)
 }
 
 bool
-xr_result(XrInstance instance, XrResult result, const char* format, ...)
+xr_result(XrResult result, const char* format, ...)
 {
   if (XR_SUCCEEDED(result))
     return true;
@@ -76,7 +76,7 @@ _check_vk_extension()
   result = xrEnumerateInstanceExtensionProperties(
     NULL, 0, &instanceExtensionCount, NULL);
 
-  if (!xr_result(NULL, result,
+  if (!xr_result(result,
                  "Failed to enumerate number of instance extension properties"))
     return false;
 
@@ -89,13 +89,13 @@ _check_vk_extension()
   result = xrEnumerateInstanceExtensionProperties(NULL, instanceExtensionCount,
                                                   &instanceExtensionCount,
                                                   instanceExtensionProperties);
-  if (!xr_result(NULL, result, "Failed to enumerate extension properties"))
+  if (!xr_result(result, "Failed to enumerate extension properties"))
     return false;
 
   result =
     is_extension_supported(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
                            instanceExtensionProperties, instanceExtensionCount);
-  if (!xr_result(NULL, result,
+  if (!xr_result(result,
                  "Runtime does not support required instance extension %s\n",
                  XR_KHR_VULKAN_ENABLE_EXTENSION_NAME))
     return false;
@@ -155,7 +155,7 @@ _create_instance(xr_example* self)
 
   XrResult result;
   result = xrCreateInstance(&instanceCreateInfo, &self->instance);
-  if (!xr_result(NULL, result, "Failed to create XR instance."))
+  if (!xr_result(result, "Failed to create XR instance."))
     return false;
 
   return true;
@@ -167,8 +167,7 @@ _create_system(xr_example* self)
   XrPath vrConfigName;
   XrResult result;
   result = xrStringToPath(self->instance, viewport_config_name, &vrConfigName);
-  xr_result(self->instance, result,
-            "failed to get viewport configuration name");
+  xr_result(result, "failed to get viewport configuration name");
 
   xrg_log_i("Got vrconfig %lu\n", vrConfigName);
 
@@ -178,8 +177,7 @@ _create_system(xr_example* self)
   };
 
   result = xrGetSystem(self->instance, &systemGetInfo, &self->system_id);
-  if (!xr_result(self->instance, result,
-                 "Failed to get system for %s viewport configuration.",
+  if (!xr_result(result, "Failed to get system for %s viewport configuration.",
                  viewport_config_name))
     return false;
 
@@ -191,7 +189,7 @@ _create_system(xr_example* self)
 
   result =
     xrGetSystemProperties(self->instance, self->system_id, &systemProperties);
-  if (!xr_result(self->instance, result, "Failed to get System properties"))
+  if (!xr_result(result, "Failed to get System properties"))
     return false;
 
   return true;
@@ -204,16 +202,14 @@ _set_up_views(xr_example* self)
   XrResult result;
   result = xrEnumerateViewConfigurations(self->instance, self->system_id, 0,
                                          &viewConfigurationCount, NULL);
-  if (!xr_result(self->instance, result,
-                 "Failed to get view configuration count"))
+  if (!xr_result(result, "Failed to get view configuration count"))
     return false;
 
   XrViewConfigurationType viewConfigurations[viewConfigurationCount];
   result = xrEnumerateViewConfigurations(
     self->instance, self->system_id, viewConfigurationCount,
     &viewConfigurationCount, viewConfigurations);
-  if (!xr_result(self->instance, result,
-                 "Failed to enumerate view configurations!"))
+  if (!xr_result(result, "Failed to enumerate view configurations!"))
     return false;
 
   self->view_config_type = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
@@ -233,8 +229,7 @@ _set_up_views(xr_example* self)
 
     result = xrGetViewConfigurationProperties(
       self->instance, self->system_id, viewConfigurations[i], &properties);
-    if (!xr_result(self->instance, result,
-                   "Failed to get view configuration info %d!", i))
+    if (!xr_result(result, "Failed to get view configuration info %d!", i))
       return false;
 
     if (viewConfigurations[i] == self->view_config_type &&
@@ -256,8 +251,7 @@ _set_up_views(xr_example* self)
   result = xrEnumerateViewConfigurationViews(self->instance, self->system_id,
                                              self->view_config_type, 0,
                                              &self->view_count, NULL);
-  if (!xr_result(self->instance, result,
-                 "Failed to get view configuration view count!"))
+  if (!xr_result(result, "Failed to get view configuration view count!"))
     return false;
 
   self->configuration_views =
@@ -266,8 +260,7 @@ _set_up_views(xr_example* self)
   result = xrEnumerateViewConfigurationViews(
     self->instance, self->system_id, self->view_config_type, self->view_count,
     &self->view_count, self->configuration_views);
-  if (!xr_result(self->instance, result,
-                 "Failed to enumerate view configuration views!"))
+  if (!xr_result(result, "Failed to enumerate view configuration views!"))
     return false;
 
   uint32_t secondaryViewConfigurationViewCount = 0;
@@ -277,8 +270,7 @@ _set_up_views(xr_example* self)
     result = xrEnumerateViewConfigurationViews(
       self->instance, self->system_id, optionalSecondaryViewConfigType, 0,
       &secondaryViewConfigurationViewCount, NULL);
-    if (!xr_result(self->instance, result,
-                   "Failed to get view configuration view count!"))
+    if (!xr_result(result, "Failed to get view configuration view count!"))
       return false;
   }
 
@@ -288,8 +280,7 @@ _set_up_views(xr_example* self)
       self->instance, self->system_id, optionalSecondaryViewConfigType,
       secondaryViewConfigurationViewCount, &secondaryViewConfigurationViewCount,
       self->configuration_views);
-    if (!xr_result(self->instance, result,
-                   "Failed to enumerate view configuration views!"))
+    if (!xr_result(result, "Failed to enumerate view configuration views!"))
       return false;
   }
 
@@ -306,14 +297,12 @@ _check_graphics_api_support(xr_example* self)
   XrResult result = xrGetInstanceProcAddr(
     self->instance, "xrGetVulkanGraphicsRequirementsKHR",
     (PFN_xrVoidFunction*)(&GetVulkanGraphicsRequirements));
-  if (!xr_result(self->instance, result,
-                 "Failed to retrieve OpenXR Vulkan function pointer!"))
+  if (!xr_result(result, "Failed to retrieve OpenXR Vulkan function pointer!"))
     return false;
 
   result =
     GetVulkanGraphicsRequirements(self->instance, self->system_id, &vk_reqs);
-  if (!xr_result(self->instance, result,
-                 "Failed to get Vulkan graphics requirements!"))
+  if (!xr_result(result, "Failed to get Vulkan graphics requirements!"))
     return false;
 
   XrVersion desired_version = XR_MAKE_VERSION(1, 0, 0);
@@ -339,7 +328,7 @@ _create_session(xr_example* self)
 
   XrResult result =
     xrCreateSession(self->instance, &session_create_info, &self->session);
-  if (!xr_result(self->instance, result, "Failed to create session"))
+  if (!xr_result(result, "Failed to create session"))
     return false;
   return true;
 }
@@ -350,15 +339,13 @@ _check_supported_spaces(xr_example* self)
   uint32_t referenceSpacesCount;
   XrResult result =
     xrEnumerateReferenceSpaces(self->session, 0, &referenceSpacesCount, NULL);
-  if (!xr_result(self->instance, result,
-                 "Getting number of reference spaces failed!"))
+  if (!xr_result(result, "Getting number of reference spaces failed!"))
     return false;
 
   XrReferenceSpaceType referenceSpaces[referenceSpacesCount];
   result = xrEnumerateReferenceSpaces(self->session, referenceSpacesCount,
                                       &referenceSpacesCount, referenceSpaces);
-  if (!xr_result(self->instance, result,
-                 "Enumerating reference spaces failed!"))
+  if (!xr_result(result, "Enumerating reference spaces failed!"))
     return false;
 
   bool localSpaceSupported = false;
@@ -387,7 +374,7 @@ _check_supported_spaces(xr_example* self)
 
   result = xrCreateReferenceSpace(self->session, &referenceSpaceCreateInfo,
                                   &self->local_space);
-  if (!xr_result(self->instance, result, "Failed to create local space!"))
+  if (!xr_result(result, "Failed to create local space!"))
     return false;
 
   return true;
@@ -401,7 +388,7 @@ _begin_session(xr_example* self)
     .primaryViewConfigurationType = self->view_config_type,
   };
   XrResult result = xrBeginSession(self->session, &sessionBeginInfo);
-  if (!xr_result(self->instance, result, "Failed to begin session!"))
+  if (!xr_result(result, "Failed to begin session!"))
     return false;
 
   return true;
@@ -414,15 +401,13 @@ _create_swapchains(xr_example* self)
   uint32_t swapchainFormatCount;
   result =
     xrEnumerateSwapchainFormats(self->session, 0, &swapchainFormatCount, NULL);
-  if (!xr_result(self->instance, result,
-                 "Failed to get number of supported swapchain formats"))
+  if (!xr_result(result, "Failed to get number of supported swapchain formats"))
     return false;
 
   int64_t swapchainFormats[swapchainFormatCount];
   result = xrEnumerateSwapchainFormats(self->session, swapchainFormatCount,
                                        &swapchainFormatCount, swapchainFormats);
-  if (!xr_result(self->instance, result,
-                 "Failed to enumerate swapchain formats"))
+  if (!xr_result(result, "Failed to enumerate swapchain formats"))
     return false;
 
   /* First create swapchains and query the length for each swapchain. */
@@ -454,12 +439,12 @@ _create_swapchains(xr_example* self)
 
     result = xrCreateSwapchain(self->session, &swapchainCreateInfo,
                                &self->swapchains[i]);
-    if (!xr_result(self->instance, result, "Failed to create swapchain %d!", i))
+    if (!xr_result(result, "Failed to create swapchain %d!", i))
       return false;
 
     result = xrEnumerateSwapchainImages(self->swapchains[i], 0,
                                         &swapchainLength[i], NULL);
-    if (!xr_result(self->instance, result, "Failed to enumerate swapchains"))
+    if (!xr_result(result, "Failed to enumerate swapchains"))
       return false;
   }
 
@@ -483,7 +468,7 @@ _create_swapchains(xr_example* self)
     result = xrEnumerateSwapchainImages(
       self->swapchains[i], swapchainLength[i], &swapchainLength[i],
       (XrSwapchainImageBaseHeader*)self->images[i]);
-    if (!xr_result(self->instance, result, "Failed to enumerate swapchains"))
+    if (!xr_result(result, "Failed to enumerate swapchains"))
       return false;
   }
 
@@ -528,8 +513,7 @@ xr_begin_frame(xr_example* self)
     .type = XR_TYPE_FRAME_WAIT_INFO,
   };
   result = xrWaitFrame(self->session, &frameWaitInfo, &self->frameState);
-  if (!xr_result(self->instance, result,
-                 "xrWaitFrame() was not successful, exiting..."))
+  if (!xr_result(result, "xrWaitFrame() was not successful, exiting..."))
     return false;
 
   XrResult pollResult = xrPollEvent(self->instance, &runtimeEvent);
@@ -576,7 +560,7 @@ xr_begin_frame(xr_example* self)
   uint32_t viewCountOutput;
   result = xrLocateViews(self->session, &viewLocateInfo, &viewState,
                          self->view_count, &viewCountOutput, self->views);
-  if (!xr_result(self->instance, result, "Could not locate views"))
+  if (!xr_result(result, "Could not locate views"))
     return false;
 
   // --- Begin frame
@@ -585,7 +569,7 @@ xr_begin_frame(xr_example* self)
   };
 
   result = xrBeginFrame(self->session, &frameBeginInfo);
-  if (!xr_result(self->instance, result, "failed to begin frame!"))
+  if (!xr_result(result, "failed to begin frame!"))
     return false;
 
   return true;
@@ -602,7 +586,7 @@ xr_aquire_swapchain(xr_example* self, uint32_t i, uint32_t* buffer_index)
 
   result = xrAcquireSwapchainImage(self->swapchains[i],
                                    &swapchainImageAcquireInfo, buffer_index);
-  if (!xr_result(self->instance, result, "failed to acquire swapchain image!"))
+  if (!xr_result(result, "failed to acquire swapchain image!"))
     return false;
 
   XrSwapchainImageWaitInfo swapchainImageWaitInfo = {
@@ -610,7 +594,7 @@ xr_aquire_swapchain(xr_example* self, uint32_t i, uint32_t* buffer_index)
     .timeout = INT64_MAX,
   };
   result = xrWaitSwapchainImage(self->swapchains[i], &swapchainImageWaitInfo);
-  if (!xr_result(self->instance, result, "failed to wait for swapchain image!"))
+  if (!xr_result(result, "failed to wait for swapchain image!"))
     return false;
 
   self->projection_views[i].pose = self->views[i].pose;
@@ -628,7 +612,7 @@ xr_release_swapchain(xr_example* self, uint32_t eye)
   };
   XrResult result =
     xrReleaseSwapchainImage(self->swapchains[eye], &swapchainImageReleaseInfo);
-  if (!xr_result(self->instance, result, "failed to release swapchain image!"))
+  if (!xr_result(result, "failed to release swapchain image!"))
     return false;
 
   return true;
@@ -650,7 +634,7 @@ xr_end_frame(xr_example* self)
     .environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE,
   };
   result = xrEndFrame(self->session, &frameEndInfo);
-  if (!xr_result(self->instance, result, "failed to end frame!"))
+  if (!xr_result(result, "failed to end frame!"))
     return false;
 
   free(self->views);
