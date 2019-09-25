@@ -11,6 +11,8 @@
 
 #include "xr.h"
 
+#include <openxr/openxr_reflection.h>
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -24,14 +26,26 @@
 
 static const char* viewport_config_name = "/viewport_configuration/vr";
 
+static const char*
+xr_result_to_string(XrResult result)
+{
+  switch (result) {
+
+#define MAKE_CASE(VAL, _)                                                      \
+  case VAL: return #VAL;
+
+    XR_LIST_ENUM_XrResult(MAKE_CASE);
+  default: return "UNKNOWN";
+  }
+}
+
 bool
 xr_result(XrInstance instance, XrResult result, const char* format, ...)
 {
   if (XR_SUCCEEDED(result))
     return true;
 
-  char resultString[XR_MAX_RESULT_STRING_SIZE];
-  xrResultToString(instance, result, resultString);
+  const char * resultString = xr_result_to_string(result);
 
   size_t len1 = strlen(format);
   size_t len2 = strlen(resultString) + 1;
