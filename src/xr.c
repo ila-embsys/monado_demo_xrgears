@@ -11,8 +11,6 @@
 
 #include "xr.h"
 
-#include <openxr/openxr_reflection.h>
-
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -20,7 +18,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include <X11/Xlib.h>
+#include <openxr/openxr_reflection.h>
 
 #include "log.h"
 
