@@ -256,6 +256,10 @@ _set_up_views(xr_example* self)
 
   self->configuration_views =
     malloc(sizeof(XrViewConfigurationView) * self->view_count);
+  for (uint32_t i = 0; i < self->view_count; ++i) {
+    self->configuration_views[i].type = XR_TYPE_VIEW_CONFIGURATION_VIEW;
+    self->configuration_views[i].next = NULL;
+  }
 
   result = xrEnumerateViewConfigurationViews(
     self->instance, self->system_id, self->view_config_type, self->view_count,
