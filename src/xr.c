@@ -58,7 +58,9 @@ xr_result(XrResult result, const char* format, ...)
 }
 
 bool
-is_extension_supported(char* name, XrExtensionProperties* props, uint32_t count)
+is_extension_supported(const char* name,
+                       XrExtensionProperties* props,
+                       uint32_t count)
 {
   for (uint32_t i = 0; i < count; i++)
     if (!strcmp(name, props[i].extensionName))
@@ -90,13 +92,13 @@ _check_vk_extension()
   if (!xr_result(result, "Failed to enumerate extension properties"))
     return false;
 
-  result =
-    is_extension_supported(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
-                           instanceExtensionProperties, instanceExtensionCount);
-  if (!xr_result(result,
-                 "Runtime does not support required instance extension %s\n",
-                 XR_KHR_VULKAN_ENABLE_EXTENSION_NAME))
+  if (!is_extension_supported(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
+                              instanceExtensionProperties,
+                              instanceExtensionCount)) {
+    printf("Runtime does not support required instance extension %s\n",
+           XR_KHR_VULKAN_ENABLE_EXTENSION_NAME);
     return false;
+  }
 
   return true;
 }
@@ -135,20 +137,21 @@ _create_instance(xr_example* self)
   const char* const enabledExtensions[] = {
     XR_KHR_VULKAN_ENABLE_EXTENSION_NAME
   };
-
   XrInstanceCreateInfo instanceCreateInfo = {
     .type = XR_TYPE_INSTANCE_CREATE_INFO,
     .createFlags = 0,
+    .applicationInfo =
+      (XrApplicationInfo){
+        .applicationName = "xrgears",
+        .applicationVersion = 1,
+        .engineName = "xrgears",
+        .engineVersion = 1,
+        .apiVersion = XR_CURRENT_API_VERSION,
+      },
+    .enabledApiLayerCount = 0,
+    .enabledApiLayerNames = NULL,
     .enabledExtensionCount = 1,
     .enabledExtensionNames = enabledExtensions,
-    .enabledApiLayerCount = 0,
-    .applicationInfo = {
-      .applicationName = "xrgears",
-      .engineName = "xrgears",
-      .applicationVersion = 1,
-      .engineVersion = 1,
-      .apiVersion = XR_CURRENT_API_VERSION,
-    },
   };
 
   XrResult result;
@@ -463,9 +466,9 @@ _create_swapchains(xr_example* self, xr_proj* proj)
   for (uint32_t i = 0; i < self->view_count; i++) {
     XrSwapchainCreateInfo swapchainCreateInfo = {
       .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
+      .createFlags = 0,
       .usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT |
                     XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT,
-      .createFlags = 0,
       // just use the first enumerated format
       .format = swapchainFormats[0],
       .sampleCount = 1,
@@ -596,7 +599,8 @@ xr_begin_frame(xr_example* self)
 
   self->views = malloc(sizeof(XrView) * self->view_count);
   for (uint32_t i = 0; i < self->view_count; i++) {
-    self->views[i].type = XR_TYPE_VIEW;
+
+    self->views[i] = (XrView){ .type = XR_TYPE_VIEW };
   };
 
   XrViewState viewState = {
@@ -684,9 +688,9 @@ xr_end_frame(xr_example* self)
   XrFrameEndInfo frameEndInfo = {
     .type = XR_TYPE_FRAME_END_INFO,
     .displayTime = self->frameState.predictedDisplayTime,
+    .environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE,
     .layerCount = ARRAY_SIZE(layers),
     .layers = layers,
-    .environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE,
   };
 
   result = xrEndFrame(self->session, &frameEndInfo);
