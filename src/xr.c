@@ -22,8 +22,6 @@
 
 #include "log.h"
 
-static const char* viewport_config_name = "/viewport_configuration/vr";
-
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 static const char*
@@ -164,21 +162,14 @@ _create_instance(xr_example* self)
 static bool
 _create_system(xr_example* self)
 {
-  XrPath vrConfigName;
   XrResult result;
-  result = xrStringToPath(self->instance, viewport_config_name, &vrConfigName);
-  xr_result(result, "failed to get viewport configuration name");
-
-  xrg_log_i("Got vrconfig %lu\n", vrConfigName);
-
   XrSystemGetInfo systemGetInfo = {
     .type = XR_TYPE_SYSTEM_GET_INFO,
     .formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY,
   };
 
   result = xrGetSystem(self->instance, &systemGetInfo, &self->system_id);
-  if (!xr_result(result, "Failed to get system for %s viewport configuration.",
-                 viewport_config_name))
+  if (!xr_result(result, "Failed to get system"))
     return false;
 
   XrSystemProperties systemProperties = {
@@ -243,8 +234,7 @@ _set_up_views(xr_example* self)
   }
   if (requiredViewConfigProperties.type !=
       XR_TYPE_VIEW_CONFIGURATION_PROPERTIES) {
-    xrg_log_e("Couldn't get required VR View Configuration %s from Runtime!",
-              viewport_config_name);
+    xrg_log_e("Couldn't get required VR View Configuration from Runtime!");
     return false;
   }
 
