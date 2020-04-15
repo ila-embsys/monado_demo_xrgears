@@ -596,6 +596,7 @@ xr_begin_frame(xr_example* self)
   // --- Create projection matrices and view matrices for each eye
   XrViewLocateInfo viewLocateInfo = {
     .type = XR_TYPE_VIEW_LOCATE_INFO,
+    .viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
     .displayTime = self->frameState.predictedDisplayTime,
     .space = self->local_space,
   };
