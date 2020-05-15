@@ -24,6 +24,8 @@
 
 static const char* viewport_config_name = "/viewport_configuration/vr";
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
 static const char*
 xr_result_to_string(XrResult result)
 {
@@ -621,16 +623,19 @@ xr_end_frame(xr_example* self)
 {
   XrResult result;
 
-  const XrCompositionLayerBaseHeader* const projectionlayers[1] = {
-    (const XrCompositionLayerBaseHeader* const) & self->projectionLayer
+  const XrCompositionLayerBaseHeader* const layers[3] = {
+    (const XrCompositionLayerBaseHeader* const) & self->projection_layer,
+    (const XrCompositionLayerBaseHeader* const) & self->quad.layer,
+    (const XrCompositionLayerBaseHeader* const) & self->quad2.layer,
   };
   XrFrameEndInfo frameEndInfo = {
     .type = XR_TYPE_FRAME_END_INFO,
     .displayTime = self->frameState.predictedDisplayTime,
-    .layerCount = 1,
-    .layers = projectionlayers,
+    .layerCount = ARRAY_SIZE(layers),
+    .layers = layers,
     .environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE,
   };
+
   result = xrEndFrame(self->session, &frameEndInfo);
   if (!xr_result(result, "failed to end frame!"))
     return false;
@@ -678,7 +683,6 @@ xr_init(xr_example* self,
   if (!_check_graphics_api_support(self))
     return false;
 
-
   self->graphics_binding = (XrGraphicsBindingVulkanKHR){
     .type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR,
     .instance = instance,
@@ -705,7 +709,7 @@ xr_init(xr_example* self,
   self->is_visible = true;
   self->is_runnting = true;
 
-  self->projectionLayer = (XrCompositionLayerProjection){
+  self->projection_layer = (XrCompositionLayerProjection){
     .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
     .layerFlags = 0,
     .space = self->local_space,

@@ -56,13 +56,15 @@ public:
 
   VkImage image;
   VkImageLayout image_layout;
-  VkDeviceMemory device_memory;
-  VkSampler sampler;
-  VkImageView view;
+  VkDeviceMemory device_memory = VK_NULL_HANDLE;
+  VkSampler sampler = VK_NULL_HANDLE;
+  VkImageView view = VK_NULL_HANDLE;
 
   uint32_t width, height;
   uint32_t mip_levels;
   uint32_t layer_count;
+
+  bool created_from_image = false;
 
   VkDescriptorImageInfo
   get_descriptor()
@@ -78,11 +80,14 @@ public:
   void
   destroy()
   {
-    vkDestroyImageView(device->device, view, nullptr);
-    vkDestroyImage(device->device, image, nullptr);
+    if (view)
+      vkDestroyImageView(device->device, view, nullptr);
+    if (!created_from_image)
+      vkDestroyImage(device->device, image, nullptr);
     if (sampler)
       vkDestroySampler(device->device, sampler, nullptr);
-    vkFreeMemory(device->device, device_memory, nullptr);
+    if (device_memory)
+      vkFreeMemory(device->device, device_memory, nullptr);
   }
 
   void
@@ -115,6 +120,37 @@ public:
     create_image_view(format);
 
     ktxTexture_Destroy(kTexture);
+  }
+
+  void
+  load_from_ktx(VkImage image,
+                const ktx_uint8_t *bytes,
+                ktx_size_t size,
+                vulkan_device *device,
+                VkQueue copy_queue)
+  {
+    ktxTexture *kTexture;
+    KTX_error_code ktxresult;
+    ktxresult = ktxTexture_CreateFromMemory(
+      bytes, size, KTX_TEXTURE_CREATE_NO_FLAGS, &kTexture);
+
+    if (KTX_SUCCESS != ktxresult) {
+      xrg_log_e("Creation of ktxTexture failed: %d", ktxresult);
+      return;
+    }
+
+    this->device = device;
+    width = kTexture->baseWidth;
+    height = kTexture->baseHeight;
+    mip_levels = kTexture->numLevels;
+
+    this->image = image;
+
+    upload_no_mem(kTexture, copy_queue);
+
+    ktxTexture_Destroy(kTexture);
+
+    created_from_image = true;
   }
 
   void
@@ -245,6 +281,104 @@ public:
     vkFreeMemory(device->device, staging_memory, nullptr);
     vkDestroyBuffer(device->device, staging_buffer, nullptr);
   }
+
+  void
+  upload_no_mem(ktxTexture *tex, VkQueue copy_queue)
+  {
+    VkBufferCreateInfo bufferCreateInfo = {
+      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .size = ktxTexture_GetSize(tex),
+      .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+    };
+
+    VkBuffer staging_buffer;
+    vk_check(vkCreateBuffer(device->device, &bufferCreateInfo, nullptr,
+                            &staging_buffer));
+
+    VkMemoryRequirements mem_reqs;
+    vkGetBufferMemoryRequirements(device->device, staging_buffer, &mem_reqs);
+
+    uint32_t type_index = device->get_memory_type(
+      mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    VkMemoryAllocateInfo mem_info = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      .allocationSize = mem_reqs.size,
+      .memoryTypeIndex = type_index,
+    };
+
+    VkDeviceMemory staging_memory;
+    vk_check(
+      vkAllocateMemory(device->device, &mem_info, nullptr, &staging_memory));
+    vk_check(
+      vkBindBufferMemory(device->device, staging_buffer, staging_memory, 0));
+
+    uint8_t *data;
+    vk_check(vkMapMemory(device->device, staging_memory, 0, mem_reqs.size, 0,
+                         (void **)&data));
+
+    KTX_error_code kResult;
+    kResult = ktxTexture_LoadImageData(tex, data, (ktx_size_t)mem_reqs.size);
+    if (kResult != KTX_SUCCESS)
+      xrg_log_f("Could not load image data: %d", kResult);
+
+    vkUnmapMemory(device->device, staging_memory);
+
+    std::vector<VkBufferImageCopy> buffer_image_copies;
+    for (uint32_t i = 0; i < mip_levels; i++) {
+      ktx_size_t offset;
+      ktxTexture_GetImageOffset(tex, i, 0, 0, &offset);
+      VkBufferImageCopy image_copy = {
+        .bufferOffset = offset,
+        .imageSubresource =
+        {
+          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+          .mipLevel = i,
+          .baseArrayLayer = 0,
+          .layerCount = 1,
+        },
+        .imageExtent = {
+          .width = tex->baseWidth >> i,
+          .height = tex->baseHeight >> i,
+          .depth = tex->baseDepth  >> i,
+        },
+      };
+      buffer_image_copies.push_back(image_copy);
+    }
+
+    VkCommandBuffer copy_cmd =
+      device->create_cmd_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+    VkImageSubresourceRange subresource_range = {
+      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+      .baseMipLevel = 0,
+      .levelCount = mip_levels,
+      .layerCount = 1,
+    };
+
+    set_image_layout(copy_cmd, image, VK_IMAGE_LAYOUT_UNDEFINED,
+                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresource_range, 0,
+                     VK_ACCESS_TRANSFER_WRITE_BIT);
+
+    vkCmdCopyBufferToImage(copy_cmd, staging_buffer, image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           static_cast<uint32_t>(buffer_image_copies.size()),
+                           buffer_image_copies.data());
+
+    image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    set_image_layout(copy_cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                     subresource_range, VK_ACCESS_TRANSFER_WRITE_BIT,
+                     VK_ACCESS_SHADER_READ_BIT);
+
+    device->flush_cmd_buffer(copy_cmd, copy_queue);
+
+    vkFreeMemory(device->device, staging_memory, nullptr);
+    vkDestroyBuffer(device->device, staging_buffer, nullptr);
+  }
+
 
   void
   create_sampler()

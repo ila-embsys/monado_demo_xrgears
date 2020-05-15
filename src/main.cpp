@@ -29,6 +29,9 @@
 #include "settings.hpp"
 #include "vulkan_instance.hpp"
 
+#include "cat.ktx.h"
+#include "hawk.ktx.h"
+
 #define check_feature(f)                                                       \
   {                                                                            \
     if (device_features.f) {                                                   \
@@ -70,6 +73,8 @@ public:
   VkPhysicalDeviceFeatures device_features;
   VkPhysicalDeviceFeatures enabled_features{};
   VkPipelineCache pipeline_cache;
+
+  vulkan_texture quad_texture[3];
 
   struct
   {
@@ -262,6 +267,57 @@ public:
     }
   }
 
+  void
+  init_quads()
+  {
+    float ppm = 1000;
+    XrExtent2Di extent = { .width = 1080, .height = 1920 };
+    XrPosef pose = {
+      .orientation = { .x = 0, .y = 0, .z = 0, .w = 1 },
+      .position = { .x = -2, .y = 1, .z = -3 },
+    };
+    XrExtent2Df size = {
+      .width = extent.width / ppm,
+      .height = extent.height / ppm,
+    };
+    xr_quad_init(&xr.quad, xr.session, xr.local_space, extent, pose, size);
+
+    ktx_size_t tex_size = sizeof(hawk_ktx) / sizeof(hawk_ktx[0]);
+
+    for (uint32_t i = 0; i < xr.quad.swapchain_length; i++) {
+      uint32_t buffer_index;
+      if (!xr_quad_acquire_swapchain(&xr.quad, &buffer_index))
+        xrg_log_e("Could not acquire quad swapchain.");
+      quad_texture[i].load_from_ktx(xr.quad.images[i].image, hawk_ktx, tex_size,
+                                    vk_device, queue);
+      if (!xr_quad_release_swapchain(&xr.quad))
+        xrg_log_e("Could not release quad swapchain.");
+    }
+
+    XrExtent2Di extent2 = { .width = 2370, .height = 1570 };
+    XrPosef pose2 = {
+      .orientation = { .x = 0, .y = 0, .z = 0, .w = 1 },
+      .position = { .x = 2, .y = 1, .z = -3 },
+    };
+    XrExtent2Df size2 = {
+      .width = extent2.width / ppm,
+      .height = extent2.height / ppm,
+    };
+    xr_quad_init(&xr.quad2, xr.session, xr.local_space, extent2, pose2, size2);
+
+    ktx_size_t tex_size2 = sizeof(cat_ktx) / sizeof(cat_ktx[0]);
+
+    for (uint32_t i = 0; i < xr.quad2.swapchain_length; i++) {
+      uint32_t buffer_index;
+      if (!xr_quad_acquire_swapchain(&xr.quad2, &buffer_index))
+        xrg_log_e("Could not acquire quad swapchain.");
+      quad_texture[i].load_from_ktx(xr.quad2.images[i].image, cat_ktx,
+                                    tex_size2, vk_device, queue);
+      if (!xr_quad_release_swapchain(&xr.quad2))
+        xrg_log_e("Could not release quad swapchain.");
+    }
+  }
+
   bool
   init()
   {
@@ -300,6 +356,8 @@ public:
       vk_device, queue, offscreen_passes[0]->render_pass, pipeline_cache);
 
     build_command_buffer();
+
+    init_quads();
 
     return true;
   }
