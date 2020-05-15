@@ -20,7 +20,9 @@ sources = [
   'vulkan_shader.hpp',
   'vulkan_texture.hpp',
   'xr.c',
-  'xr.h'
+  'xr.h',
+  'xr_quad.h',
+  'xr_quad.c'
 ]
 
 include_dirs = [
