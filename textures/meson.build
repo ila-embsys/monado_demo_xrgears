@@ -1,10 +1,12 @@
 textures = [
-  'rooftop_night_4k_tonemapped.png.ktx'
+  'rooftop_night_4k_tonemapped.png.ktx',
+  'hawk.ktx',
+  'cat.ktx'
 ]
 
-glslang = find_program('xxd')
+xxd = find_program('xxd')
 
-if glslang.found()
+if xxd.found()
 
   foreach t : textures
     r = run_command('xxd', '-i', t, t + '.h')
