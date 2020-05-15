@@ -20,6 +20,8 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
+#include "xr_quad.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,6 +35,7 @@ typedef struct xr_example
   XrViewConfigurationType view_config_type;
 
   XrSwapchain* swapchains;
+
   XrCompositionLayerProjectionView* projection_views;
   XrViewConfigurationView* configuration_views;
 
@@ -45,11 +48,15 @@ typedef struct xr_example
   bool is_visible;
   bool is_runnting;
 
-  XrCompositionLayerProjection projectionLayer;
+  XrCompositionLayerProjection projection_layer;
+
   XrFrameState frameState;
   XrView* views;
 
   int64_t swapchain_format;
+
+  xr_quad quad;
+  xr_quad quad2;
 
 } xr_example;
 
@@ -75,6 +82,9 @@ xr_release_swapchain(xr_example* self, uint32_t eye);
 
 bool
 xr_end_frame(xr_example* self);
+
+bool
+xr_result(XrResult result, const char* format, ...);
 
 #ifdef __cplusplus
 }
