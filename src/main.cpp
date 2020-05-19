@@ -359,6 +359,8 @@ public:
 
     init_quads();
 
+    printf("oryl?");
+
     return true;
   }
 

@@ -12,18 +12,16 @@
 
 #include "glm_inc.hpp"
 
+
 #include "vulkan_texture.hpp"
 #include "vulkan_framebuffer.hpp"
 
-class pipeline_equirect
+#include "vulkan_pipeline.hpp"
+
+class pipeline_equirect : public vulkan_pipeline
 {
 public:
-  VkDevice device;
-  VkPipeline pipeline;
-  VkDescriptorSetLayout descriptor_set_layout;
-  VkPipelineLayout pipeline_layout;
   VkDescriptorSet descriptor_sets[2];
-  VkDescriptorPool descriptor_pool;
 
   vulkan_texture texture;
 

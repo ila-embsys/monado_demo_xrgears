@@ -14,13 +14,11 @@
 
 #include "gear.hpp"
 
-class pipeline_gears
+#include "vulkan_pipeline.hpp"
+
+class pipeline_gears : public vulkan_pipeline
 {
 public:
-  VkDevice device;
-  VkPipeline pipeline;
-  VkDescriptorPool descriptor_pool;
-
   std::vector<Gear *> nodes;
 
   struct UBOLights
@@ -32,9 +30,6 @@ public:
   {
     vulkan_buffer lights;
   } uniform_buffers;
-
-  VkPipelineLayout pipeline_layout;
-  VkDescriptorSetLayout descriptor_set_layout;
 
   pipeline_gears(vulkan_device *vulkan_device,
                  VkRenderPass render_pass,
