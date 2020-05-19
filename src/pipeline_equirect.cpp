@@ -16,7 +16,7 @@
 #include "sky_plane_equirect.frag.h"
 #include "sky_plane_equirect.vert.h"
 
-#include "rooftop_night_4k_tonemapped.png.ktx.h"
+#include "textures.h"
 
 pipeline_equirect::pipeline_equirect(vulkan_device *vulkan_device,
                                      VkQueue queue,
@@ -47,11 +47,8 @@ pipeline_equirect::~pipeline_equirect()
 void
 pipeline_equirect::init_texture(vulkan_device *vk_device, VkQueue queue)
 {
-  ktx_size_t size = sizeof(rooftop_night_4k_tonemapped_png_ktx) /
-                    sizeof(rooftop_night_4k_tonemapped_png_ktx[0]);
-
-  texture.load_from_ktx(rooftop_night_4k_tonemapped_png_ktx, size, vk_device,
-                        queue, VK_FORMAT_BC2_UNORM_BLOCK);
+  texture.load_from_ktx(rooftop_bytes(), rooftop_size(), vk_device, queue,
+                        VK_FORMAT_BC2_UNORM_BLOCK);
 }
 
 void

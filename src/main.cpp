@@ -29,8 +29,7 @@
 #include "settings.hpp"
 #include "vulkan_instance.hpp"
 
-#include "cat.ktx.h"
-#include "hawk.ktx.h"
+#include "textures.h"
 
 #define check_feature(f)                                                       \
   {                                                                            \
@@ -282,14 +281,12 @@ public:
     };
     xr_quad_init(&xr.quad, xr.session, xr.local_space, extent, pose, size);
 
-    ktx_size_t tex_size = sizeof(hawk_ktx) / sizeof(hawk_ktx[0]);
-
     for (uint32_t i = 0; i < xr.quad.swapchain_length; i++) {
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
-      quad_texture[i].load_from_ktx(xr.quad.images[i].image, hawk_ktx, tex_size,
-                                    vk_device, queue);
+      quad_texture[i].load_from_ktx(xr.quad.images[i].image, hawk_bytes(),
+                                    hawk_size(), vk_device, queue);
       if (!xr_quad_release_swapchain(&xr.quad))
         xrg_log_e("Could not release quad swapchain.");
     }
@@ -305,14 +302,12 @@ public:
     };
     xr_quad_init(&xr.quad2, xr.session, xr.local_space, extent2, pose2, size2);
 
-    ktx_size_t tex_size2 = sizeof(cat_ktx) / sizeof(cat_ktx[0]);
-
     for (uint32_t i = 0; i < xr.quad2.swapchain_length; i++) {
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad2, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
-      quad_texture[i].load_from_ktx(xr.quad2.images[i].image, cat_ktx,
-                                    tex_size2, vk_device, queue);
+      quad_texture[i].load_from_ktx(xr.quad2.images[i].image, cat_bytes(),
+                                    cat_size(), vk_device, queue);
       if (!xr_quad_release_swapchain(&xr.quad2))
         xrg_log_e("Could not release quad swapchain.");
     }
