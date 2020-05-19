@@ -395,7 +395,7 @@ _begin_session(xr_example* self)
 }
 
 static bool
-_create_swapchains(xr_example* self)
+_create_swapchains(xr_example* self, xr_proj* proj)
 {
   XrResult result;
   uint32_t swapchainFormatCount;
@@ -411,7 +411,7 @@ _create_swapchains(xr_example* self)
     return false;
 
   /* First create swapchains and query the length for each swapchain. */
-  self->swapchains = malloc(sizeof(XrSwapchain) * self->view_count);
+  proj->swapchains = malloc(sizeof(XrSwapchain) * self->view_count);
 
   uint32_t swapchainLength[self->view_count];
 
@@ -438,11 +438,11 @@ _create_swapchains(xr_example* self)
               self->configuration_views[i].recommendedImageRectHeight);
 
     result = xrCreateSwapchain(self->session, &swapchainCreateInfo,
-                               &self->swapchains[i]);
+                               &proj->swapchains[i]);
     if (!xr_result(result, "Failed to create swapchain %d!", i))
       return false;
 
-    result = xrEnumerateSwapchainImages(self->swapchains[i], 0,
+    result = xrEnumerateSwapchainImages(proj->swapchains[i], 0,
                                         &swapchainLength[i], NULL);
     if (!xr_result(result, "Failed to enumerate swapchains"))
       return false;
@@ -457,17 +457,17 @@ _create_swapchains(xr_example* self)
     }
   }
 
-  self->images = malloc(sizeof(XrSwapchainImageVulkanKHR*) * self->view_count);
+  proj->images = malloc(sizeof(XrSwapchainImageVulkanKHR*) * self->view_count);
   for (uint32_t i = 0; i < self->view_count; i++) {
-    self->images[i] =
+    proj->images[i] =
       malloc(sizeof(XrSwapchainImageVulkanKHR) * maxSwapchainLength);
   }
 
 
   for (uint32_t i = 0; i < self->view_count; i++) {
     result = xrEnumerateSwapchainImages(
-      self->swapchains[i], swapchainLength[i], &swapchainLength[i],
-      (XrSwapchainImageBaseHeader*)self->images[i]);
+      proj->swapchains[i], swapchainLength[i], &swapchainLength[i],
+      (XrSwapchainImageBaseHeader*)proj->images[i]);
     if (!xr_result(result, "Failed to enumerate swapchains"))
       return false;
   }
@@ -476,16 +476,16 @@ _create_swapchains(xr_example* self)
 }
 
 static void
-_create_projection_views(xr_example* self)
+_create_projection_views(xr_example* self, xr_proj* proj)
 {
-  self->projection_views =
+  proj->views =
     malloc(sizeof(XrCompositionLayerProjectionView) * self->view_count);
 
   for (uint32_t i = 0; i < self->view_count; i++)
-    self->projection_views[i] = (XrCompositionLayerProjectionView) {
+    proj->views[i] = (XrCompositionLayerProjectionView) {
       .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
       .subImage = {
-        .swapchain = self->swapchains[i],
+        .swapchain = proj->swapchains[i],
         .imageRect = {
           .extent = {
               .width = (int32_t) self->configuration_views[i].recommendedImageRectWidth,
@@ -576,43 +576,45 @@ xr_begin_frame(xr_example* self)
 }
 
 bool
-xr_aquire_swapchain(xr_example* self, uint32_t i, uint32_t* buffer_index)
+xr_aquire_swapchain(xr_example* self,
+                    xr_proj* proj,
+                    uint32_t i,
+                    uint32_t* buffer_index)
 {
   XrResult result;
 
-  XrSwapchainImageAcquireInfo swapchainImageAcquireInfo = {
+  XrSwapchainImageAcquireInfo acquire_info = {
     .type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO,
   };
 
-  result = xrAcquireSwapchainImage(self->swapchains[i],
-                                   &swapchainImageAcquireInfo, buffer_index);
+  result =
+    xrAcquireSwapchainImage(proj->swapchains[i], &acquire_info, buffer_index);
   if (!xr_result(result, "failed to acquire swapchain image!"))
     return false;
 
-  XrSwapchainImageWaitInfo swapchainImageWaitInfo = {
+  XrSwapchainImageWaitInfo wait_info = {
     .type = XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO,
     .timeout = INT64_MAX,
   };
-  result = xrWaitSwapchainImage(self->swapchains[i], &swapchainImageWaitInfo);
+  result = xrWaitSwapchainImage(proj->swapchains[i], &wait_info);
   if (!xr_result(result, "failed to wait for swapchain image!"))
     return false;
 
-  self->projection_views[i].pose = self->views[i].pose;
-  self->projection_views[i].fov = self->views[i].fov;
-  self->projection_views[i].subImage.imageArrayIndex = *buffer_index;
+  proj->views[i].pose = self->views[i].pose;
+  proj->views[i].fov = self->views[i].fov;
+  proj->views[i].subImage.imageArrayIndex = *buffer_index;
 
   return true;
 }
 
 bool
-xr_release_swapchain(xr_example* self, uint32_t eye)
+xr_release_swapchain(XrSwapchain swapchain)
 {
-  XrSwapchainImageReleaseInfo swapchainImageReleaseInfo = {
+  XrSwapchainImageReleaseInfo info = {
     .type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO,
   };
-  XrResult result =
-    xrReleaseSwapchainImage(self->swapchains[eye], &swapchainImageReleaseInfo);
-  if (!xr_result(result, "failed to release swapchain image!"))
+  XrResult res = xrReleaseSwapchainImage(swapchain, &info);
+  if (!xr_result(res, "failed to release swapchain image!"))
     return false;
 
   return true;
@@ -623,8 +625,9 @@ xr_end_frame(xr_example* self)
 {
   XrResult result;
 
-  const XrCompositionLayerBaseHeader* const layers[3] = {
-    (const XrCompositionLayerBaseHeader* const) & self->projection_layer,
+  const XrCompositionLayerBaseHeader* const layers[] = {
+    (const XrCompositionLayerBaseHeader* const) & self->sky.layer,
+    (const XrCompositionLayerBaseHeader* const) & self->gears.layer,
     (const XrCompositionLayerBaseHeader* const) & self->quad.layer,
     (const XrCompositionLayerBaseHeader* const) & self->quad2.layer,
   };
@@ -645,16 +648,39 @@ xr_end_frame(xr_example* self)
   return true;
 }
 
+static void
+_cleanup_proj(xr_example* self, xr_proj* proj)
+{
+  for (uint32_t i = 0; i < self->view_count; i++) {
+    xrDestroySwapchain(proj->swapchains[i]);
+  }
+  free(proj->swapchains);
+}
+
 void
 xr_cleanup(xr_example* self)
 {
-  for (uint32_t i = 0; i < self->view_count; i++) {
-    xrDestroySwapchain(self->swapchains[i]);
-  }
-  free(self->swapchains);
+  _cleanup_proj(self, &self->gears);
+  _cleanup_proj(self, &self->sky);
+
   xrDestroySpace(self->local_space);
   xrDestroySession(self->session);
   xrDestroyInstance(self->instance);
+}
+
+static bool
+_init_proj(xr_example* self, xr_proj* proj)
+{
+  if (!_create_swapchains(self, proj))
+    return false;
+  _create_projection_views(self, proj);
+  proj->layer = (XrCompositionLayerProjection){
+    .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
+    .space = self->local_space,
+    .viewCount = self->view_count,
+    .views = proj->views,
+  };
+  return true;
 }
 
 bool
@@ -665,6 +691,9 @@ xr_init(xr_example* self,
         uint32_t queue_family_index,
         uint32_t queue_index)
 {
+  self->is_visible = true;
+  self->is_runnting = true;
+
   if (!_check_vk_extension())
     return false;
 
@@ -701,21 +730,8 @@ xr_init(xr_example* self,
   if (!_begin_session(self))
     return false;
 
-  if (!_create_swapchains(self))
-    return false;
-
-  _create_projection_views(self);
-
-  self->is_visible = true;
-  self->is_runnting = true;
-
-  self->projection_layer = (XrCompositionLayerProjection){
-    .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
-    .layerFlags = 0,
-    .space = self->local_space,
-    .viewCount = self->view_count,
-    .views = self->projection_views,
-  };
+  _init_proj(self, &self->gears);
+  _init_proj(self, &self->sky);
 
   return true;
 }
