@@ -32,4 +32,5 @@ main()
   float v = acos(-view_dir.y) / PI;
 
   out_color = texture(map, vec2(u, v));
+  out_color.w = 1.0f;
 }
