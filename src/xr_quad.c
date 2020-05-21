@@ -30,7 +30,9 @@ _create_quad_swapchain(xr_quad* self, XrSession session, XrExtent2Di* extent)
 
   XrSwapchainCreateInfo swapchainCreateInfo = {
     .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
-    .usageFlags = XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT,
+    .usageFlags = XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT |
+                  XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT |
+                  XR_SWAPCHAIN_USAGE_SAMPLED_BIT,
     .createFlags = 0,
     // just use the first enumerated format
     .format = VK_FORMAT_R8G8B8A8_UNORM,

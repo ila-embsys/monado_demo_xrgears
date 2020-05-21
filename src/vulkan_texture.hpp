@@ -165,13 +165,11 @@ public:
       .arrayLayers = 1,
       .samples = VK_SAMPLE_COUNT_1_BIT,
       .tiling = VK_IMAGE_TILING_OPTIMAL,
-      .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
+      .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
       .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    if (!(info.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
-      info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     vk_check(vkCreateImage(device->device, &info, nullptr, &image));
   }
 
