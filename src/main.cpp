@@ -60,12 +60,12 @@ public:
   } uniform_buffers;
 
   pipeline_gears *gears;
-  vulkan_framebuffer *gears_buffers[2];
-  VkCommandBuffer gears_draw_cmd = VK_NULL_HANDLE;
+  vulkan_framebuffer **gears_buffers[2];
+  VkCommandBuffer *gears_draw_cmd;
 
   pipeline_equirect *equirect;
-  vulkan_framebuffer *sky_buffers[2];
-  VkCommandBuffer sky_draw_cmd = VK_NULL_HANDLE;
+  vulkan_framebuffer **sky_buffers[2];
+  VkCommandBuffer *sky_draw_cmd;
 
   VkDevice device;
   VkPhysicalDevice physical_device;
@@ -95,15 +95,25 @@ public:
   ~xrgears()
   {
     for (uint32_t i = 0; i < 2; i++)
-      if (gears_buffers[i])
-        delete gears_buffers[i];
+      for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++)
+        if (gears_buffers[i][j])
+          delete gears_buffers[i][j];
 
     for (uint32_t i = 0; i < 2; i++)
-      if (sky_buffers[i])
-        delete sky_buffers[i];
+      for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++)
+        if (sky_buffers[i][j])
+          delete sky_buffers[i][j];
 
     delete gears;
     delete equirect;
+
+    for (uint32_t i = 0; i < 2; i++) {
+      free(gears_buffers[i]);
+      free(sky_buffers[i]);
+    }
+
+    free(gears_draw_cmd);
+    free(sky_draw_cmd);
 
     xr_cleanup(&xr);
 
@@ -138,7 +148,9 @@ public:
 
   void
   build_command_buffer(VkCommandBuffer *cb,
-                       vulkan_framebuffer **fb,
+                       vulkan_framebuffer ***fb,
+                       uint32_t view_count,
+                       uint32_t swapchain_index,
                        vulkan_pipeline *pipe)
   {
     if (*cb == VK_NULL_HANDLE)
@@ -149,11 +161,11 @@ public:
     };
     vk_check(vkBeginCommandBuffer(*cb, &command_buffer_info));
 
-    for (uint32_t i = 0; i < 2; i++) {
-      fb[i]->begin_render_pass(*cb);
-      fb[i]->set_viewport_and_scissor(*cb);
+    for (uint32_t view_index = 0; view_index < view_count; view_index++) {
+      fb[view_index][swapchain_index]->begin_render_pass(*cb);
+      fb[view_index][swapchain_index]->set_viewport_and_scissor(*cb);
 
-      pipe->draw(*cb, i);
+      pipe->draw(*cb, view_index);
 
       vkCmdEndRenderPass(*cb);
     }
@@ -225,8 +237,8 @@ public:
   {
     xr_begin_frame(&xr);
 
+    uint32_t buffer_index;
     for (uint32_t i = 0; i < 2; i++) {
-      uint32_t buffer_index;
       if (!xr_aquire_swapchain(&xr, &xr.gears, i, &buffer_index)) {
         xrg_log_e("Could not aquire xr swapchain");
         return;
@@ -263,12 +275,12 @@ public:
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .pWaitDstStageMask = stage_flags,
       .commandBufferCount = 1,
-      .pCommandBuffers = &gears_draw_cmd,
+      .pCommandBuffers = &gears_draw_cmd[buffer_index],
     };
 
     vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
 
-    submit_info.pCommandBuffers = &sky_draw_cmd;
+    submit_info.pCommandBuffers = &sky_draw_cmd[buffer_index];
 
     vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
 
@@ -348,41 +360,56 @@ public:
       xrg_log_e("OpenXR initialization failed.");
       return false;
     }
-
-    for (uint32_t i = 0; i < 2; i++) {
-      gears_buffers[i] = new vulkan_framebuffer(device);
-      gears_buffers[i]->init_offscreen_framebuffer(
-        vk_device, xr.gears.images[i][0].image, (VkFormat)xr.swapchain_format,
-        xr.configuration_views[i].recommendedImageRectWidth,
-        xr.configuration_views[i].recommendedImageRectHeight);
-    }
     xrg_log_i("Initialized OpenXR with %d views.", xr.view_count);
 
-    for (uint32_t i = 0; i < 2; i++) {
-      sky_buffers[i] = new vulkan_framebuffer(device);
-      sky_buffers[i]->init_offscreen_framebuffer(
-        vk_device, xr.sky.images[i][0].image, (VkFormat)xr.swapchain_format,
-        xr.configuration_views[i].recommendedImageRectWidth,
-        xr.configuration_views[i].recommendedImageRectHeight);
-    }
+    for (uint32_t i = 0; i < xr.view_count; i++) {
 
-    for (uint32_t i = 0; i < 2; i++)
+      gears_draw_cmd = (VkCommandBuffer *)malloc(sizeof(VkCommandBuffer) *
+                                                 xr.gears.swapchain_length[i]);
+      sky_draw_cmd = (VkCommandBuffer *)malloc(sizeof(VkCommandBuffer) *
+                                               xr.sky.swapchain_length[i]);
+
+      gears_buffers[i] = (vulkan_framebuffer **)malloc(
+        sizeof(vulkan_framebuffer *) * xr.gears.swapchain_length[i]);
+      for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++) {
+        gears_buffers[i][j] = new vulkan_framebuffer(device);
+        gears_buffers[i][j]->init_offscreen_framebuffer(
+          vk_device, xr.gears.images[i][j].image, (VkFormat)xr.swapchain_format,
+          xr.configuration_views[i].recommendedImageRectWidth,
+          xr.configuration_views[i].recommendedImageRectHeight);
+      }
+
+      sky_buffers[i] = (vulkan_framebuffer **)malloc(
+        sizeof(vulkan_framebuffer *) * xr.sky.swapchain_length[i]);
+      for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++) {
+        sky_buffers[i][j] = new vulkan_framebuffer(device);
+        sky_buffers[i][j]->init_offscreen_framebuffer(
+          vk_device, xr.sky.images[i][j].image, (VkFormat)xr.swapchain_format,
+          xr.configuration_views[i].recommendedImageRectWidth,
+          xr.configuration_views[i].recommendedImageRectHeight);
+      }
+
       vk_device->create_and_map(&uniform_buffers.camera[i],
                                 sizeof(ubo_camera[i]));
+    }
 
     VkDescriptorBufferInfo *camera_descriptors[2] = {
       &uniform_buffers.camera[0].descriptor,
       &uniform_buffers.camera[1].descriptor
     };
 
-    gears = new pipeline_gears(vk_device, gears_buffers[0]->render_pass,
+    gears = new pipeline_gears(vk_device, gears_buffers[0][0]->render_pass,
                                pipeline_cache, camera_descriptors);
 
     equirect = new pipeline_equirect(
-      vk_device, queue, sky_buffers[0]->render_pass, pipeline_cache);
+      vk_device, queue, sky_buffers[0][0]->render_pass, pipeline_cache);
 
-    build_command_buffer(&gears_draw_cmd, gears_buffers, gears);
-    build_command_buffer(&sky_draw_cmd, sky_buffers, equirect);
+    for (uint32_t i = 0; i < xr.gears.swapchain_length[0]; i++)
+      build_command_buffer(&gears_draw_cmd[i], gears_buffers, xr.view_count, i,
+                           gears);
+    for (uint32_t i = 0; i < xr.sky.swapchain_length[0]; i++)
+      build_command_buffer(&sky_draw_cmd[i], sky_buffers, xr.view_count, i,
+                           equirect);
 
     init_quads();
 
