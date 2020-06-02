@@ -604,7 +604,6 @@ xr_aquire_swapchain(xr_example* self,
 
   proj->views[i].pose = self->views[i].pose;
   proj->views[i].fov = self->views[i].fov;
-  proj->views[i].subImage.imageArrayIndex = *buffer_index;
 
   return true;
 }
