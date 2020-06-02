@@ -413,7 +413,7 @@ _create_swapchains(xr_example* self, xr_proj* proj)
   /* First create swapchains and query the length for each swapchain. */
   proj->swapchains = malloc(sizeof(XrSwapchain) * self->view_count);
 
-  uint32_t swapchainLength[self->view_count];
+  proj->swapchain_length = malloc(sizeof(uint32_t) * self->view_count);
 
   self->swapchain_format = swapchainFormats[0];
 
@@ -443,7 +443,7 @@ _create_swapchains(xr_example* self, xr_proj* proj)
       return false;
 
     result = xrEnumerateSwapchainImages(proj->swapchains[i], 0,
-                                        &swapchainLength[i], NULL);
+                                        &proj->swapchain_length[i], NULL);
     if (!xr_result(result, "Failed to enumerate swapchains"))
       return false;
   }
@@ -452,8 +452,8 @@ _create_swapchains(xr_example* self, xr_proj* proj)
   // if they are not
   uint32_t maxSwapchainLength = 0;
   for (uint32_t i = 0; i < self->view_count; i++) {
-    if (swapchainLength[i] > maxSwapchainLength) {
-      maxSwapchainLength = swapchainLength[i];
+    if (proj->swapchain_length[i] > maxSwapchainLength) {
+      maxSwapchainLength = proj->swapchain_length[i];
     }
   }
 
@@ -463,14 +463,16 @@ _create_swapchains(xr_example* self, xr_proj* proj)
       malloc(sizeof(XrSwapchainImageVulkanKHR) * maxSwapchainLength);
   }
 
-
   for (uint32_t i = 0; i < self->view_count; i++) {
     result = xrEnumerateSwapchainImages(
-      proj->swapchains[i], swapchainLength[i], &swapchainLength[i],
-      (XrSwapchainImageBaseHeader*)proj->images[i]);
+      proj->swapchains[i], proj->swapchain_length[i],
+      &proj->swapchain_length[i], (XrSwapchainImageBaseHeader*)proj->images[i]);
     if (!xr_result(result, "Failed to enumerate swapchains"))
       return false;
+    xrg_log_d("xrEnumerateSwapchainImages: swapchain_length[%d] %d", i,
+              proj->swapchain_length[i]);
   }
+
 
   return true;
 }

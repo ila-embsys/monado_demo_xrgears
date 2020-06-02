@@ -31,6 +31,7 @@ typedef struct xr_proj
   XrCompositionLayerProjection layer;
   XrCompositionLayerProjectionView* views;
   XrSwapchain* swapchains;
+  uint32_t* swapchain_length; // One length per view
   XrSwapchainImageVulkanKHR** images;
 } xr_proj;
 
