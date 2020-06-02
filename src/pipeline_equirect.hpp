@@ -61,7 +61,7 @@ public:
   init_uniform_buffers(vulkan_device *vk_device);
 
   void
-  update_uniform_buffers(glm::mat4 projection, glm::mat4 view, uint32_t eye);
+  update_vp(glm::mat4 projection, glm::mat4 view, uint32_t eye);
 
   void
   draw(VkCommandBuffer cmd_buffer, uint32_t eye);

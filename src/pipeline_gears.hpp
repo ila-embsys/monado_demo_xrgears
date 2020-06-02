@@ -28,13 +28,18 @@ public:
 
   struct
   {
+    glm::mat4 vp;
+  } ubo_camera[2];
+
+  struct
+  {
     vulkan_buffer lights;
+    vulkan_buffer camera[2];
   } uniform_buffers;
 
   pipeline_gears(vulkan_device *vulkan_device,
                  VkRenderPass render_pass,
-                 VkPipelineCache pipeline_cache,
-                 VkDescriptorBufferInfo *camera_descriptor[2]);
+                 VkPipelineCache pipeline_cache);
   ~pipeline_gears();
 
   void
@@ -59,7 +64,10 @@ public:
   update_lights();
 
   void
-  update_uniform_buffers(float animation_timer);
+  update_time(float animation_timer);
+
+  void
+  update_vp(glm::mat4 projection, glm::mat4 view, uint32_t eye);
 
   void
   init_uniform_buffers(vulkan_device *vk_device);

@@ -262,9 +262,7 @@ pipeline_equirect::init_uniform_buffers(vulkan_device *vk_device)
 }
 
 void
-pipeline_equirect::update_uniform_buffers(glm::mat4 projection,
-                                          glm::mat4 view,
-                                          uint32_t eye)
+pipeline_equirect::update_vp(glm::mat4 projection, glm::mat4 view, uint32_t eye)
 {
   ubo_views[eye].vp = glm::inverse(projection * glm::mat4(glm::mat3(view)));
   memcpy(uniform_buffers.views[eye].mapped, &ubo_views[eye],

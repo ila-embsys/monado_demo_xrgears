@@ -54,11 +54,6 @@ public:
   vulkan_instance *instance;
   vulkan_device *vk_device;
 
-  struct
-  {
-    vulkan_buffer camera[2];
-  } uniform_buffers;
-
   vulkan_pipeline *gears;
   vulkan_framebuffer **gears_buffers[2];
   VkCommandBuffer *gears_draw_cmd;
@@ -76,11 +71,6 @@ public:
   VkPipelineCache pipeline_cache;
 
   vulkan_texture quad_texture[3];
-
-  struct
-  {
-    glm::mat4 vp;
-  } ubo_camera[2];
 
   xrgears(int argc, char *argv[])
   {
@@ -114,9 +104,6 @@ public:
     free(sky_draw_cmd);
 
     xr_cleanup(&xr);
-
-    for (uint32_t i = 0; i < 2; i++)
-      uniform_buffers.camera[i].destroy();
 
     vkDestroyPipelineCache(device, pipeline_cache, nullptr);
 
@@ -250,17 +237,12 @@ public:
         _create_projection_from_fov(xr.views[i].fov, 0.05f, 100.0f);
       glm::mat4 view = _create_view_from_pose(&xr.views[i].pose);
 
-      ubo_camera[i].vp = projection * view;
+      ((pipeline_gears *)gears)->update_vp(projection, view, i);
 
-      memcpy(uniform_buffers.camera[i].mapped, &ubo_camera[i],
-             sizeof(ubo_camera[i]));
-
-      ((pipeline_equirect *)equirect)
-        ->update_uniform_buffers(projection, view, i);
+      ((pipeline_equirect *)equirect)->update_vp(projection, view, i);
     }
 
-
-    ((pipeline_gears *)gears)->update_uniform_buffers(animation_timer);
+    ((pipeline_gears *)gears)->update_time(animation_timer);
 
     VkPipelineStageFlags stage_flags[1] = {
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -383,18 +365,10 @@ public:
           xr.configuration_views[i].recommendedImageRectWidth,
           xr.configuration_views[i].recommendedImageRectHeight);
       }
-
-      vk_device->create_and_map(&uniform_buffers.camera[i],
-                                sizeof(ubo_camera[i]));
     }
 
-    VkDescriptorBufferInfo *camera_descriptors[2] = {
-      &uniform_buffers.camera[0].descriptor,
-      &uniform_buffers.camera[1].descriptor
-    };
-
     gears = new pipeline_gears(vk_device, gears_buffers[0][0]->render_pass,
-                               pipeline_cache, camera_descriptors);
+                               pipeline_cache);
 
     equirect = new pipeline_equirect(
       vk_device, queue, sky_buffers[0][0]->render_pass, pipeline_cache);

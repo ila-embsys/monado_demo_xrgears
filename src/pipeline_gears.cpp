@@ -59,20 +59,22 @@ public:
 };
 
 
-pipeline_gears::pipeline_gears(vulkan_device* vulkan_device,
+pipeline_gears::pipeline_gears(vulkan_device* vk_device,
                                VkRenderPass render_pass,
-                               VkPipelineCache pipeline_cache,
-                               VkDescriptorBufferInfo* camera_descriptor[2])
+                               VkPipelineCache pipeline_cache)
 {
-  this->device = vulkan_device->device;
+  this->device = vk_device->device;
 
-  init_gears(vulkan_device);
-  init_uniform_buffers(vulkan_device);
+  init_gears(vk_device);
+  init_uniform_buffers(vk_device);
   init_descriptor_pool();
   init_descriptor_set_layout();
   init_pipeline(render_pass, pipeline_cache);
-  for (uint32_t i = 0; i < 2; i++)
-    init_descriptor_sets(i, camera_descriptor[i]);
+  for (uint32_t i = 0; i < 2; i++) {
+    vk_device->create_and_map(&uniform_buffers.camera[i],
+                              sizeof(ubo_camera[i]));
+    init_descriptor_sets(i, &uniform_buffers.camera[i].descriptor);
+  }
 }
 
 pipeline_gears::~pipeline_gears()
@@ -81,6 +83,8 @@ pipeline_gears::~pipeline_gears()
   vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
   uniform_buffers.lights.destroy();
+  for (uint32_t i = 0; i < 2; i++)
+    uniform_buffers.camera[i].destroy();
 
   for (auto& node : nodes)
     delete (node);
@@ -363,13 +367,22 @@ pipeline_gears::update_lights()
 }
 
 void
-pipeline_gears::update_uniform_buffers(float animation_timer)
+pipeline_gears::update_time(float animation_timer)
 {
   for (Gear* node : nodes)
     node->update_uniform_buffer(animation_timer);
 
   update_lights();
 }
+
+void
+pipeline_gears::update_vp(glm::mat4 projection, glm::mat4 view, uint32_t eye)
+{
+  ubo_camera[eye].vp = projection * view;
+  memcpy(uniform_buffers.camera[eye].mapped, &ubo_camera[eye],
+         sizeof(ubo_camera[eye]));
+}
+
 
 void
 pipeline_gears::init_uniform_buffers(vulkan_device* vk_device)
