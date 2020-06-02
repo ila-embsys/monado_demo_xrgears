@@ -24,7 +24,6 @@ layout(binding = 2) uniform UBOCamera
 {
   mat4 projection;
   mat4 view;
-  vec4 position;
 }
 uboCamera;
 

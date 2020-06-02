@@ -59,11 +59,11 @@ public:
     vulkan_buffer camera[2];
   } uniform_buffers;
 
-  pipeline_gears *gears;
+  vulkan_pipeline *gears;
   vulkan_framebuffer **gears_buffers[2];
   VkCommandBuffer *gears_draw_cmd;
 
-  pipeline_equirect *equirect;
+  vulkan_pipeline *equirect;
   vulkan_framebuffer **sky_buffers[2];
   VkCommandBuffer *sky_draw_cmd;
 
@@ -81,7 +81,6 @@ public:
   {
     glm::mat4 projection;
     glm::mat4 view;
-    glm::vec4 position;
   } ubo_camera[2];
 
   xrgears(int argc, char *argv[])
@@ -252,18 +251,15 @@ public:
         _create_projection_from_fov(xr.views[i].fov, 0.05f, 100.0f);
       ubo_camera[i].view = _create_view_from_pose(&xr.views[i].pose);
 
-      ubo_camera[i].position =
-        glm::vec4(xr.views[i].pose.position.x, xr.views[i].pose.position.y,
-                  xr.views[i].pose.position.z, 1);
       memcpy(uniform_buffers.camera[i].mapped, &ubo_camera[i],
              sizeof(ubo_camera[i]));
     }
 
 
-    gears->update_uniform_buffers(animation_timer);
+    ((pipeline_gears*) gears)->update_uniform_buffers(animation_timer);
 
     for (uint32_t i = 0; i < 2; i++)
-      equirect->update_uniform_buffers(ubo_camera[i].projection,
+      ((pipeline_equirect*) equirect)->update_uniform_buffers(ubo_camera[i].projection,
                                        ubo_camera[i].view, i);
 
     VkPipelineStageFlags stage_flags[1] = {
