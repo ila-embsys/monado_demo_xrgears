@@ -79,8 +79,7 @@ public:
 
   struct
   {
-    glm::mat4 projection;
-    glm::mat4 view;
+    glm::mat4 vp;
   } ubo_camera[2];
 
   xrgears(int argc, char *argv[])
@@ -247,20 +246,21 @@ public:
         return;
       }
 
-      ubo_camera[i].projection =
+      glm::mat4 projection =
         _create_projection_from_fov(xr.views[i].fov, 0.05f, 100.0f);
-      ubo_camera[i].view = _create_view_from_pose(&xr.views[i].pose);
+      glm::mat4 view = _create_view_from_pose(&xr.views[i].pose);
+
+      ubo_camera[i].vp = projection * view;
 
       memcpy(uniform_buffers.camera[i].mapped, &ubo_camera[i],
              sizeof(ubo_camera[i]));
+
+      ((pipeline_equirect *)equirect)
+        ->update_uniform_buffers(projection, view, i);
     }
 
 
-    ((pipeline_gears*) gears)->update_uniform_buffers(animation_timer);
-
-    for (uint32_t i = 0; i < 2; i++)
-      ((pipeline_equirect*) equirect)->update_uniform_buffers(ubo_camera[i].projection,
-                                       ubo_camera[i].view, i);
+    ((pipeline_gears *)gears)->update_uniform_buffers(animation_timer);
 
     VkPipelineStageFlags stage_flags[1] = {
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT

@@ -22,8 +22,7 @@ uboModel;
 
 layout(binding = 2) uniform UBOCamera
 {
-  mat4 projection;
-  mat4 view;
+  mat4 vp;
 }
 uboCamera;
 
@@ -40,5 +39,5 @@ main()
 {
   outNormal = mat3(uboModel.normal) * inNormal;
   outWorldPos = uboModel.model * vec4(inPos.xyz, 1.0);
-  gl_Position = uboCamera.projection * uboCamera.view * outWorldPos;
+  gl_Position = uboCamera.vp * outWorldPos;
 }
