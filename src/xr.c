@@ -43,7 +43,7 @@ xr_result(XrResult result, const char* format, ...)
   if (XR_SUCCEEDED(result))
     return true;
 
-  const char * resultString = xr_result_to_string(result);
+  const char* resultString = xr_result_to_string(result);
 
   size_t len1 = strlen(format);
   size_t len2 = strlen(resultString) + 1;

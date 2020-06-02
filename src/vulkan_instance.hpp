@@ -85,9 +85,7 @@ public:
       .ppEnabledExtensionNames = extensions.data(),
     };
 
-    const char *validation_layers[] = {
-      "VK_LAYER_KHRONOS_validation"
-    };
+    const char *validation_layers[] = { "VK_LAYER_KHRONOS_validation" };
 
     if (settings->validation) {
       instance_info.enabledLayerCount = 1;
