@@ -28,8 +28,6 @@ public:
   VkFormat color_format = VK_FORMAT_B8G8R8A8_UNORM;
   VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
-  bool validation = false;
-
   std::string
   help_string()
   {
@@ -37,7 +35,6 @@ public:
            "\n"
            "Options:\n"
            "  -g, --gpu GPU            GPU to use (default: 0)\n"
-           "  -v, --validation         Run Vulkan validation\n"
            "  -h, --help               Show this help\n";
   }
 
@@ -49,7 +46,6 @@ public:
 
 
     struct option long_options[] = { { "help", 0, 0, 0 },
-                                     { "validation", 0, 0, 0 },
                                      { "gpu", 1, 0, 0 },
                                      { 0, 0, 0, 0 } };
 
@@ -67,8 +63,6 @@ public:
       if (opt == 'h' || optname == "help") {
         printf("%s\n", help_string().c_str());
         exit(0);
-      } else if (opt == 'v' || optname == "validation") {
-        validation = true;
       } else if (opt == 'g' || optname == "gpu") {
         gpu = parse_id(optarg);
       } else {

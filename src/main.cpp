@@ -67,7 +67,7 @@ public:
     if (!settings.parse_args(argc, argv))
       xrg_log_f("Invalid arguments.");
 
-    instance = new vulkan_instance(&settings);
+    instance = new vulkan_instance();
   }
 
   ~xrgears()
