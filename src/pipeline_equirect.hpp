@@ -13,7 +13,7 @@
 #include "glm_inc.hpp"
 
 
-#include "vulkan_texture.hpp"
+#include "vulkan_texture.h"
 #include "vulkan_framebuffer.hpp"
 
 #include "vulkan_pipeline.hpp"

@@ -8,7 +8,7 @@ sources = [
   'xr.c',
   'xr_quad.c',
   'textures.c',
-  'vulkan_texture.cpp',
+  'vulkan_texture.c',
   'vulkan_buffer.c',
   'vulkan_device.c',
   'vulkan_shader.c'

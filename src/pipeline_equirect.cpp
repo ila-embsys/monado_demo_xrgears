@@ -41,14 +41,14 @@ pipeline_equirect::~pipeline_equirect()
   vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
   for (uint32_t i = 0; i < 2; i++)
     vulkan_buffer_destroy(&uniform_buffers.views[i]);
-  texture.destroy();
+  vulkan_texture_destroy(&texture);
 }
 
 void
 pipeline_equirect::init_texture(vulkan_device *vk_device, VkQueue queue)
 {
-  texture.load_from_ktx(rooftop_bytes(), rooftop_size(), vk_device, queue,
-                        VK_FORMAT_BC2_UNORM_BLOCK);
+  vulkan_texture_load_ktx(&texture, rooftop_bytes(), rooftop_size(), vk_device,
+                          queue, VK_FORMAT_BC2_UNORM_BLOCK);
 }
 
 void
@@ -128,7 +128,7 @@ pipeline_equirect::init_descriptor_sets(uint32_t eye)
   };
   vk_check(vkAllocateDescriptorSets(device, &allocInfo, &descriptor_sets[eye]));
 
-  VkDescriptorImageInfo descriptor = texture.get_descriptor();
+  VkDescriptorImageInfo descriptor = vulkan_texture_get_descriptor(&texture);
 
   std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
     // Binding 0 : Vertex shader ubo
