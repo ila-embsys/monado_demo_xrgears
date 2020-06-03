@@ -11,7 +11,7 @@
 #include "pipeline_equirect.hpp"
 
 #include "log.h"
-#include "vulkan_shader.hpp"
+#include "vulkan_shader.h"
 
 #include "sky_plane_equirect.frag.h"
 #include "sky_plane_equirect.vert.h"
@@ -219,12 +219,12 @@ pipeline_equirect::init_pipeline(VkRenderPass render_pass,
   };
 
   std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-    vulkan_shader::load(device, shaders_sky_plane_equirect_vert,
-                        sizeof(shaders_sky_plane_equirect_vert),
-                        VK_SHADER_STAGE_VERTEX_BIT),
-    vulkan_shader::load(device, shaders_sky_plane_equirect_frag,
-                        sizeof(shaders_sky_plane_equirect_frag),
-                        VK_SHADER_STAGE_FRAGMENT_BIT)
+    vulkan_shader_load(device, shaders_sky_plane_equirect_vert,
+                       sizeof(shaders_sky_plane_equirect_vert),
+                       VK_SHADER_STAGE_VERTEX_BIT),
+    vulkan_shader_load(device, shaders_sky_plane_equirect_frag,
+                       sizeof(shaders_sky_plane_equirect_frag),
+                       VK_SHADER_STAGE_FRAGMENT_BIT)
   };
 
   VkGraphicsPipelineCreateInfo pipelineCreateInfo = {

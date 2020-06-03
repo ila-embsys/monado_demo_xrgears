@@ -10,7 +10,8 @@ sources = [
   'textures.c',
   'vulkan_texture.cpp',
   'vulkan_buffer.c',
-  'vulkan_device.c'
+  'vulkan_device.c',
+  'vulkan_shader.c'
 ]
 
 include_dirs = [
