@@ -31,15 +31,6 @@
 
 #include "textures.h"
 
-#define check_feature(f)                                                       \
-  {                                                                            \
-    if (device_features.f) {                                                   \
-      enabled_features.f = VK_TRUE;                                            \
-    } else {                                                                   \
-      xrg_log_f("Feature not supported: %s", #f);                              \
-    }                                                                          \
-  }
-
 class xrgears
 {
 public:
@@ -67,7 +58,6 @@ public:
   VkCommandPool cmd_pool;
   VkQueue queue;
   VkPhysicalDeviceFeatures device_features;
-  VkPhysicalDeviceFeatures enabled_features{};
   VkPipelineCache pipeline_cache;
 
   vulkan_texture quad_texture[3];
@@ -109,7 +99,7 @@ public:
 
     vkDestroyCommandPool(device, cmd_pool, nullptr);
 
-    delete vk_device;
+    vulkan_device_destroy(vk_device);
     delete instance;
 
     xrg_log_d("Shut down xrgears");
@@ -121,14 +111,6 @@ public:
     while (!quit)
       render();
     vkDeviceWaitIdle(device);
-  }
-
-  // Enable physical device features required for this example
-  void
-  check_required_features()
-  {
-    check_feature(samplerAnisotropy);
-    check_feature(textureCompressionBC);
   }
 
   void
@@ -333,7 +315,7 @@ public:
     create_command_pool(0);
 
     if (!xr_init(&xr, instance->instance, physical_device, device,
-                 vk_device->queue_family_indices.graphics, 0)) {
+                 vk_device->graphics_family_index, 0)) {
       xrg_log_e("OpenXR initialization failed.");
       return false;
     }
@@ -466,19 +448,16 @@ public:
 
     vkGetPhysicalDeviceFeatures(physical_device, &device_features);
 
-    check_required_features();
+    vk_device = vulkan_device_create(physical_device);
 
-    vk_device = new vulkan_device(physical_device);
-
-    VkResult res = vk_device->create_device(enabled_features);
+    VkResult res = vulkan_device_create_device(vk_device);
     xrg_log_f_if(res != VK_SUCCESS, "Could not create Vulkan device: %s",
                  vk_result_to_string(res));
 
     device = vk_device->device;
 
     // Get a graphics queue from the device
-    vkGetDeviceQueue(device, vk_device->queue_family_indices.graphics, 0,
-                     &queue);
+    vkGetDeviceQueue(device, vk_device->graphics_family_index, 0, &queue);
   }
 
   void

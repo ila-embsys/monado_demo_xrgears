@@ -71,8 +71,8 @@ pipeline_gears::pipeline_gears(vulkan_device* vk_device,
   init_descriptor_set_layout();
   init_pipeline(render_pass, pipeline_cache);
   for (uint32_t i = 0; i < 2; i++) {
-    vk_device->create_and_map(&uniform_buffers.camera[i],
-                              sizeof(ubo_camera[i]));
+    vulkan_device_create_and_map(vk_device, &uniform_buffers.camera[i],
+                                 sizeof(ubo_camera[i]));
     init_descriptor_sets(i, &uniform_buffers.camera[i].descriptor);
   }
 }
@@ -387,7 +387,8 @@ pipeline_gears::update_vp(glm::mat4 projection, glm::mat4 view, uint32_t eye)
 void
 pipeline_gears::init_uniform_buffers(vulkan_device* vk_device)
 {
-  vk_device->create_and_map(&uniform_buffers.lights, sizeof(ubo_lights));
+  vulkan_device_create_and_map(vk_device, &uniform_buffers.lights,
+                               sizeof(ubo_lights));
 
   for (auto& node : nodes)
     node->init_uniform_buffer(vk_device);

@@ -9,7 +9,8 @@ sources = [
   'xr_quad.c',
   'textures.c',
   'vulkan_texture.cpp',
-  'vulkan_buffer.c'
+  'vulkan_buffer.c',
+  'vulkan_device.c'
 ]
 
 include_dirs = [

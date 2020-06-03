@@ -15,7 +15,7 @@
 #include <vector>
 #include <array>
 
-#include "vulkan_device.hpp"
+#include "vulkan_device.h"
 
 class vulkan_framebuffer
 {
@@ -83,9 +83,12 @@ public:
     VkMemoryAllocateInfo mem_alloc = {
       .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       .allocationSize = mem_reqs.size,
-      .memoryTypeIndex = vulkanDevice->get_memory_type(
-        mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
     };
+
+    if (!vulkan_device_get_memory_type(vulkanDevice, mem_reqs.memoryTypeBits,
+                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                       &mem_alloc.memoryTypeIndex))
+      xrg_log_e("Could not find memory type.");
 
     vk_check(vkAllocateMemory(device, &mem_alloc, nullptr, &depth.mem));
     vk_check(vkBindImageMemory(device, depth.image, depth.mem, 0));

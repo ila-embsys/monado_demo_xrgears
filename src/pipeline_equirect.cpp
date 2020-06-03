@@ -258,7 +258,8 @@ pipeline_equirect::init_uniform_buffers(vulkan_device *vk_device)
 {
   // Skysphere vertex shader uniform buffer for each eye
   for (uint32_t i = 0; i < 2; i++)
-    vk_device->create_and_map(&uniform_buffers.views[i], sizeof(ubo_views[i]));
+    vulkan_device_create_and_map(vk_device, &uniform_buffers.views[i],
+                                 sizeof(ubo_views[i]));
 }
 
 void

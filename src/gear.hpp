@@ -13,7 +13,7 @@
 #include <vector>
 #include "glm_inc.hpp"
 #include "vulkan_buffer.h"
-#include "vulkan_device.hpp"
+#include "vulkan_device.h"
 #include "log.h"
 
 struct Material
@@ -181,7 +181,7 @@ public:
   void
   init_uniform_buffer(vulkan_device* vulkanDevice)
   {
-    vulkanDevice->create_and_map(&uniformBuffer, sizeof(ubo));
+    vulkan_device_create_and_map(vulkanDevice, &uniformBuffer, sizeof(ubo));
   }
 
   void
@@ -401,13 +401,15 @@ public:
     size_t indexBufferSize = iBuffer.size() * sizeof(uint32_t);
 
     // Vertex buffer
-    vulkanDevice->create_buffer(
-      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-      &vertexBuffer, vertexBufferSize, vBuffer.data());
-    // Index buffer
-    vulkanDevice->create_buffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+    vulkan_device_create_buffer(vulkanDevice, &vertexBuffer,
+                                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                &indexBuffer, indexBufferSize, iBuffer.data());
+                                vertexBufferSize, (void*)vBuffer.data());
+    // Index buffer
+    vulkan_device_create_buffer(vulkanDevice, &indexBuffer,
+                                VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                indexBufferSize, (void*)iBuffer.data());
 
     indexCount = iBuffer.size();
   }

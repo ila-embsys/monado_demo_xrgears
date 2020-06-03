@@ -159,9 +159,11 @@ vulkan_texture::upload(ktxTexture *tex, VkQueue copy_queue)
   VkMemoryRequirements mem_reqs;
   vkGetBufferMemoryRequirements(device->device, staging_buffer, &mem_reqs);
 
-  uint32_t type_index = device->get_memory_type(
-    mem_reqs.memoryTypeBits,
-    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  uint32_t type_index;
+  vulkan_device_get_memory_type(device, mem_reqs.memoryTypeBits,
+                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                &type_index);
 
   VkMemoryAllocateInfo mem_info = {
     .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -208,15 +210,15 @@ vulkan_texture::upload(ktxTexture *tex, VkQueue copy_queue)
     buffer_image_copies.push_back(image_copy);
   }
 
-  VkCommandBuffer copy_cmd =
-    device->create_cmd_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+  VkCommandBuffer copy_cmd = vulkan_device_create_cmd_buffer(device);
 
   vkGetImageMemoryRequirements(device->device, image, &mem_reqs);
 
   mem_info.allocationSize = mem_reqs.size;
 
-  mem_info.memoryTypeIndex = device->get_memory_type(
-    mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  vulkan_device_get_memory_type(device, mem_reqs.memoryTypeBits,
+                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                &mem_info.memoryTypeIndex);
   vk_check(
     vkAllocateMemory(device->device, &mem_info, nullptr, &device_memory));
   vk_check(vkBindImageMemory(device->device, image, device_memory, 0));
@@ -242,7 +244,7 @@ vulkan_texture::upload(ktxTexture *tex, VkQueue copy_queue)
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresource_range,
                     VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
-  device->flush_cmd_buffer(copy_cmd, copy_queue);
+  vulkan_device_flush_cmd_buffer(device, copy_cmd, copy_queue);
 
   vkFreeMemory(device->device, staging_memory, nullptr);
   vkDestroyBuffer(device->device, staging_buffer, nullptr);
@@ -265,9 +267,12 @@ vulkan_texture::upload_no_mem(ktxTexture *tex, VkQueue copy_queue)
   VkMemoryRequirements mem_reqs;
   vkGetBufferMemoryRequirements(device->device, staging_buffer, &mem_reqs);
 
-  uint32_t type_index = device->get_memory_type(
-    mem_reqs.memoryTypeBits,
-    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  uint32_t type_index;
+
+  vulkan_device_get_memory_type(device, mem_reqs.memoryTypeBits,
+                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                &type_index);
 
   VkMemoryAllocateInfo mem_info = {
     .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -314,8 +319,7 @@ vulkan_texture::upload_no_mem(ktxTexture *tex, VkQueue copy_queue)
     buffer_image_copies.push_back(image_copy);
   }
 
-  VkCommandBuffer copy_cmd =
-    device->create_cmd_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+  VkCommandBuffer copy_cmd = vulkan_device_create_cmd_buffer(device);
 
   VkImageSubresourceRange subresource_range = {
     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -338,7 +342,7 @@ vulkan_texture::upload_no_mem(ktxTexture *tex, VkQueue copy_queue)
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresource_range,
                     VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
-  device->flush_cmd_buffer(copy_cmd, copy_queue);
+  vulkan_device_flush_cmd_buffer(device, copy_cmd, copy_queue);
 
   vkFreeMemory(device->device, staging_memory, nullptr);
   vkDestroyBuffer(device->device, staging_buffer, nullptr);
