@@ -82,9 +82,9 @@ pipeline_gears::~pipeline_gears()
   vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
   vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
-  uniform_buffers.lights.destroy();
+  vulkan_buffer_destroy(&uniform_buffers.lights);
   for (uint32_t i = 0; i < 2; i++)
-    uniform_buffers.camera[i].destroy();
+    vulkan_buffer_destroy(&uniform_buffers.camera[i]);
 
   for (auto& node : nodes)
     delete (node);

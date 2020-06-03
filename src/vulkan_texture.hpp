@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "vulkan_device.hpp"
-#include "vulkan_buffer.hpp"
+#include "vulkan_buffer.h"
 #include "log.h"
 #include "ktx_texture.h"
 

@@ -12,7 +12,7 @@
 
 #include <vector>
 #include "glm_inc.hpp"
-#include "vulkan_buffer.hpp"
+#include "vulkan_buffer.h"
 #include "vulkan_device.hpp"
 #include "log.h"
 
@@ -91,9 +91,9 @@ public:
 
   virtual ~Gear()
   {
-    uniformBuffer.destroy();
-    vertexBuffer.destroy();
-    indexBuffer.destroy();
+    vulkan_buffer_destroy(&uniformBuffer);
+    vulkan_buffer_destroy(&vertexBuffer);
+    vulkan_buffer_destroy(&indexBuffer);
   }
 
   void

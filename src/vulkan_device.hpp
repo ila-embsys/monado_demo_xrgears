@@ -20,7 +20,7 @@
 #include <string>
 #include <stdexcept>
 
-#include "vulkan_buffer.hpp"
+#include "vulkan_buffer.h"
 #include "log.h"
 
 class vulkan_device
@@ -227,7 +227,7 @@ public:
                            buffer, size));
 
     // Map persistent
-    vk_check(buffer->map());
+    vk_check(vulkan_buffer_map(buffer));
   }
 
   VkResult
@@ -264,22 +264,22 @@ public:
 
     buffer->alignment = memReqs.alignment;
     buffer->size = memAlloc.allocationSize;
-    buffer->usageFlags = usageFlags;
-    buffer->memoryPropertyFlags = memoryPropertyFlags;
+    buffer->usage_flags = usageFlags;
+    buffer->memory_property_flags = memoryPropertyFlags;
 
     // If a pointer to the buffer data has been passed, map the buffer and copy
     // over the data
     if (data != nullptr) {
-      vk_check(buffer->map());
+      vk_check(vulkan_buffer_map(buffer));
       memcpy(buffer->mapped, data, size);
-      buffer->unmap();
+      vulkan_buffer_unmap(buffer);
     }
 
     // Initialize a default descriptor that covers the whole buffer size
-    buffer->setupDescriptor();
+    vulkan_buffer_setup_descriptor(buffer);
 
     // Attach the memory to the buffer object
-    return buffer->bind();
+    return vulkan_buffer_bind(buffer);
   }
 
   VkCommandPool

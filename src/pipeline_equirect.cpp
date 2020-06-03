@@ -40,7 +40,7 @@ pipeline_equirect::~pipeline_equirect()
   vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
   vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
   for (uint32_t i = 0; i < 2; i++)
-    uniform_buffers.views[i].destroy();
+    vulkan_buffer_destroy(&uniform_buffers.views[i]);
   texture.destroy();
 }
 
