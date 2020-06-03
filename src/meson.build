@@ -7,7 +7,8 @@ sources = [
   'pipeline_gears.cpp',
   'xr.c',
   'xr_quad.c',
-  'textures.c'
+  'textures.c',
+  'vulkan_texture.cpp'
 ]
 
 include_dirs = [
