@@ -25,13 +25,10 @@ class Settings
 public:
   int gpu = -1;
 
-  VkFormat color_format = VK_FORMAT_B8G8R8A8_UNORM;
-  VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
-
   std::string
   help_string()
   {
-    return "An OpenXR Vulkan demo\n"
+    return "A Vulkan OpenXR demo\n"
            "\n"
            "Options:\n"
            "  -g, --gpu GPU            GPU to use (default: 0)\n"
