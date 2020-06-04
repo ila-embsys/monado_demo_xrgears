@@ -27,7 +27,7 @@
 #include "pipeline_gears.hpp"
 #include "glm_inc.hpp"
 #include "settings.hpp"
-#include "vulkan_instance.hpp"
+#include "vulkan_context.h"
 
 #include "textures.h"
 
@@ -42,7 +42,7 @@ public:
 
   xr_example xr;
 
-  vulkan_instance *instance;
+  vulkan_context context;
   vulkan_device *vk_device;
 
   vulkan_pipeline *gears;
@@ -66,8 +66,6 @@ public:
   {
     if (!settings.parse_args(argc, argv))
       xrg_log_f("Invalid arguments.");
-
-    instance = new vulkan_instance();
   }
 
   ~xrgears()
@@ -100,7 +98,7 @@ public:
     vkDestroyCommandPool(device, cmd_pool, nullptr);
 
     vulkan_device_destroy(vk_device);
-    delete instance;
+    vulkan_context_destroy(&context);
 
     xrg_log_d("Shut down xrgears");
   }
@@ -316,7 +314,7 @@ public:
     create_pipeline_cache();
     create_command_pool(0);
 
-    if (!xr_init(&xr, instance->instance, physical_device, device,
+    if (!xr_init(&xr, context.instance, physical_device, device,
                  vk_device->graphics_family_index, 0)) {
       xrg_log_e("OpenXR initialization failed.");
       return false;
@@ -408,12 +406,11 @@ public:
     // Physical device
     uint32_t gpu_count = 0;
     // Get number of available physical devices
-    vk_check(
-      vkEnumeratePhysicalDevices(instance->instance, &gpu_count, nullptr));
+    vk_check(vkEnumeratePhysicalDevices(context.instance, &gpu_count, nullptr));
     assert(gpu_count > 0);
     // Enumerate devices
     std::vector<VkPhysicalDevice> physicalDevices(gpu_count);
-    err = vkEnumeratePhysicalDevices(instance->instance, &gpu_count,
+    err = vkEnumeratePhysicalDevices(context.instance, &gpu_count,
                                      physicalDevices.data());
 
     xrg_log_f_if(err, "Could not enumerate physical devices: %s",
@@ -442,7 +439,7 @@ public:
   void
   init_vulkan()
   {
-    VkResult err = instance->create_instance();
+    VkResult err = vulkan_context_create_instance(&context);
     xrg_log_f_if(err, "Could not create Vulkan instance: %s",
                  vk_result_to_string(err));
 
