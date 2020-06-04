@@ -14,7 +14,7 @@
 
 
 #include "vulkan_texture.h"
-#include "vulkan_framebuffer.hpp"
+#include "vulkan_framebuffer.h"
 
 #include "vulkan_pipeline.hpp"
 

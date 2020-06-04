@@ -18,6 +18,9 @@
 
 #include "textures.h"
 
+#include <array>
+#include <vector>
+
 pipeline_equirect::pipeline_equirect(vulkan_device *vulkan_device,
                                      VkQueue queue,
                                      VkRenderPass render_pass,

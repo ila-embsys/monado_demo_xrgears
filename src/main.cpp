@@ -20,7 +20,7 @@
 #include <string>
 
 #include "gear.hpp"
-#include "vulkan_framebuffer.hpp"
+#include "vulkan_framebuffer.h"
 #include "log.h"
 #include "xr.h"
 #include "pipeline_equirect.hpp"
@@ -72,13 +72,17 @@ public:
   {
     for (uint32_t i = 0; i < 2; i++)
       for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++)
-        if (gears_buffers[i][j])
+        if (gears_buffers[i][j]) {
+          vulkan_framebuffer_destroy(gears_buffers[i][j]);
           delete gears_buffers[i][j];
+        }
 
     for (uint32_t i = 0; i < 2; i++)
       for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++)
-        if (sky_buffers[i][j])
+        if (sky_buffers[i][j]) {
+          vulkan_framebuffer_destroy(sky_buffers[i][j]);
           delete sky_buffers[i][j];
+        }
 
     delete gears;
     delete equirect;
@@ -126,8 +130,10 @@ public:
     vk_check(vkBeginCommandBuffer(*cb, &command_buffer_info));
 
     for (uint32_t view_index = 0; view_index < view_count; view_index++) {
-      fb[view_index][swapchain_index]->begin_render_pass(*cb);
-      fb[view_index][swapchain_index]->set_viewport_and_scissor(*cb);
+      vulkan_framebuffer_begin_render_pass(fb[view_index][swapchain_index],
+                                           *cb);
+      vulkan_framebuffer_set_viewport_and_scissor(
+        fb[view_index][swapchain_index], *cb);
 
       pipe->draw(*cb, view_index);
 
@@ -331,9 +337,10 @@ public:
       gears_buffers[i] = (vulkan_framebuffer **)malloc(
         sizeof(vulkan_framebuffer *) * xr.gears.swapchain_length[i]);
       for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++) {
-        gears_buffers[i][j] = new vulkan_framebuffer(device);
-        gears_buffers[i][j]->init_offscreen_framebuffer(
-          vk_device, xr.gears.images[i][j].image, (VkFormat)xr.swapchain_format,
+        gears_buffers[i][j] = vulkan_framebuffer_create(device);
+        vulkan_framebuffer_init(
+          gears_buffers[i][j], vk_device, xr.gears.images[i][j].image,
+          (VkFormat)xr.swapchain_format,
           xr.configuration_views[i].recommendedImageRectWidth,
           xr.configuration_views[i].recommendedImageRectHeight);
       }
@@ -341,9 +348,10 @@ public:
       sky_buffers[i] = (vulkan_framebuffer **)malloc(
         sizeof(vulkan_framebuffer *) * xr.sky.swapchain_length[i]);
       for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++) {
-        sky_buffers[i][j] = new vulkan_framebuffer(device);
-        sky_buffers[i][j]->init_offscreen_framebuffer(
-          vk_device, xr.sky.images[i][j].image, (VkFormat)xr.swapchain_format,
+        sky_buffers[i][j] = vulkan_framebuffer_create(device);
+        vulkan_framebuffer_init(
+          sky_buffers[i][j], vk_device, xr.sky.images[i][j].image,
+          (VkFormat)xr.swapchain_format,
           xr.configuration_views[i].recommendedImageRectWidth,
           xr.configuration_views[i].recommendedImageRectHeight);
       }

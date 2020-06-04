@@ -13,7 +13,8 @@ sources = [
   'vulkan_device.c',
   'vulkan_shader.c',
   'vulkan_context.c',
-  'settings.c'
+  'settings.c',
+  'vulkan_framebuffer.c',
 ]
 
 include_dirs = [
