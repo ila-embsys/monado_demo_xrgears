@@ -26,7 +26,7 @@
 #include "pipeline_equirect.hpp"
 #include "pipeline_gears.hpp"
 #include "glm_inc.hpp"
-#include "settings.hpp"
+#include "settings.h"
 #include "vulkan_context.h"
 
 #include "textures.h"
@@ -38,7 +38,7 @@ public:
   float animation_timer = 0.0;
   float revolutions_per_second = 0.0625;
 
-  Settings settings;
+  xrg_settings settings;
 
   xr_example xr;
 
@@ -64,7 +64,7 @@ public:
 
   xrgears(int argc, char *argv[])
   {
-    if (!settings.parse_args(argc, argv))
+    if (!settings_parse_args(&settings, argc, argv))
       xrg_log_f("Invalid arguments.");
   }
 
