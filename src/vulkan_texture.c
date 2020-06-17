@@ -9,21 +9,41 @@
 
 #include "vulkan_texture.h"
 
+#include "log.h"
+
+static VkAccessFlags
+_get_access_flags(VkImageLayout layout)
+{
+  switch (layout) {
+  case VK_IMAGE_LAYOUT_UNDEFINED: return 0;
+  case VK_IMAGE_LAYOUT_PREINITIALIZED: return VK_ACCESS_HOST_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+    return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+    return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL: return VK_ACCESS_TRANSFER_READ_BIT;
+  case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+    return VK_ACCESS_TRANSFER_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+    return VK_ACCESS_SHADER_READ_BIT;
+  default: xrg_log_e("Unhandled access mask case for layout %d.", layout);
+  }
+  return 0;
+}
+
 static void
 _set_image_layout(VkCommandBuffer cmd_buffer,
                   VkImage image,
-                  VkImageLayout old_layout,
-                  VkImageLayout new_layout,
-                  VkImageSubresourceRange subresource_range,
-                  VkAccessFlags src_access_mask,
-                  VkAccessFlags dst_access_mask)
+                  VkImageLayout src_layout,
+                  VkImageLayout dst_layout,
+                  VkImageSubresourceRange subresource_range)
 {
   VkImageMemoryBarrier imageMemoryBarrier = {
     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-    .srcAccessMask = src_access_mask,
-    .dstAccessMask = dst_access_mask,
-    .oldLayout = old_layout,
-    .newLayout = new_layout,
+    .srcAccessMask = _get_access_flags(src_layout),
+    .dstAccessMask = _get_access_flags(dst_layout),
+    .oldLayout = src_layout,
+    .newLayout = dst_layout,
     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
     .image = image,
@@ -172,6 +192,7 @@ static void
 _transfer_image(vulkan_texture *self,
                 VkQueue copy_queue,
                 VkBuffer staging_buffer,
+                VkImageLayout dest_layout,
                 VkBufferImageCopy *buffer_image_copies)
 {
   VkImageSubresourceRange subresource_range = {
@@ -183,17 +204,15 @@ _transfer_image(vulkan_texture *self,
 
   VkCommandBuffer copy_cmd = vulkan_device_create_cmd_buffer(self->device);
   _set_image_layout(copy_cmd, self->image, VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresource_range, 0,
-                    VK_ACCESS_TRANSFER_WRITE_BIT);
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresource_range);
 
   vkCmdCopyBufferToImage(copy_cmd, staging_buffer, self->image,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, self->mip_levels,
                          buffer_image_copies);
 
-  self->image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  self->image_layout = dest_layout;
   _set_image_layout(copy_cmd, self->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresource_range,
-                    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+                    dest_layout, subresource_range);
 
   vulkan_device_flush_cmd_buffer(self->device, copy_cmd, copy_queue);
 }
@@ -202,7 +221,8 @@ static void
 _upload(vulkan_texture *self,
         ktxTexture *tex,
         VkQueue copy_queue,
-        bool alloc_mem)
+        bool alloc_mem,
+        VkImageLayout dest_layout)
 {
   VkMemoryRequirements mem_reqs;
   VkMemoryAllocateInfo mem_info;
@@ -219,7 +239,8 @@ _upload(vulkan_texture *self,
     _allocate_image_memory(self->image, self->device, &mem_reqs, &mem_info,
                            &self->device_memory);
 
-  _transfer_image(self, copy_queue, staging_buffer, buffer_image_copies);
+  _transfer_image(self, copy_queue, staging_buffer, dest_layout,
+                  buffer_image_copies);
 
   vkFreeMemory(self->device->device, staging_memory, NULL);
   vkDestroyBuffer(self->device->device, staging_buffer, NULL);
@@ -280,7 +301,8 @@ vulkan_texture_load_ktx(vulkan_texture *self,
                         ktx_size_t size,
                         vulkan_device *device,
                         VkQueue copy_queue,
-                        VkFormat format)
+                        VkFormat format,
+                        VkImageLayout dest_layout)
 {
   ktxTexture *kTexture;
   KTX_error_code ktxresult;
@@ -298,7 +320,7 @@ vulkan_texture_load_ktx(vulkan_texture *self,
   self->mip_levels = kTexture->numLevels;
 
   _create_image(self, format);
-  _upload(self, kTexture, copy_queue, true);
+  _upload(self, kTexture, copy_queue, true, dest_layout);
   _create_sampler(self);
   _create_image_view(self, format);
 
@@ -313,7 +335,8 @@ vulkan_texture_load_ktx_from_image(vulkan_texture *self,
                                    const ktx_uint8_t *bytes,
                                    ktx_size_t size,
                                    vulkan_device *device,
-                                   VkQueue copy_queue)
+                                   VkQueue copy_queue,
+                                   VkImageLayout dest_layout)
 {
   ktxTexture *kTexture;
   KTX_error_code ktxresult;
@@ -332,7 +355,7 @@ vulkan_texture_load_ktx_from_image(vulkan_texture *self,
 
   self->image = image;
 
-  _upload(self, kTexture, copy_queue, false);
+  _upload(self, kTexture, copy_queue, false, dest_layout);
 
   ktxTexture_Destroy(kTexture);
 

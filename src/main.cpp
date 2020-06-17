@@ -308,9 +308,9 @@ public:
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
-      vulkan_texture_load_ktx_from_image(&quad_texture[i],
-                                         xr.quad.images[i].image, hawk_bytes(),
-                                         hawk_size(), vk_device, queue);
+      vulkan_texture_load_ktx_from_image(
+        &quad_texture[i], xr.quad.images[i].image, hawk_bytes(), hawk_size(),
+        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_quad_release_swapchain(&xr.quad))
         xrg_log_e("Could not release quad swapchain.");
     }
@@ -330,9 +330,9 @@ public:
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad2, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
-      vulkan_texture_load_ktx_from_image(&quad_texture[i],
-                                         xr.quad2.images[i].image, cat_bytes(),
-                                         cat_size(), vk_device, queue);
+      vulkan_texture_load_ktx_from_image(
+        &quad_texture[i], xr.quad2.images[i].image, cat_bytes(), cat_size(),
+        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_quad_release_swapchain(&xr.quad2))
         xrg_log_e("Could not release quad swapchain.");
     }

@@ -52,7 +52,8 @@ vulkan_texture_load_ktx(vulkan_texture *self,
                         ktx_size_t size,
                         vulkan_device *device,
                         VkQueue copy_queue,
-                        VkFormat format);
+                        VkFormat format,
+                        VkImageLayout dest_layout);
 
 void
 vulkan_texture_load_ktx_from_image(vulkan_texture *self,
@@ -60,7 +61,8 @@ vulkan_texture_load_ktx_from_image(vulkan_texture *self,
                                    const ktx_uint8_t *bytes,
                                    ktx_size_t size,
                                    vulkan_device *device,
-                                   VkQueue copy_queue);
+                                   VkQueue copy_queue,
+                                   VkImageLayout dest_layout);
 
 #ifdef __cplusplus
 }
