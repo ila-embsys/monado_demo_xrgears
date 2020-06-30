@@ -96,6 +96,8 @@ _create_cmd_pool(vulkan_device *self)
   return cmdPool;
 }
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
 VkResult
 vulkan_device_create_device(vulkan_device *self)
 {
@@ -109,6 +111,14 @@ vulkan_device_create_device(vulkan_device *self)
     .pQueuePriorities = (float[]){ 0.0f },
   };
 
+  char *enabled_extensions[] = {
+    VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME,
+    VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+  };
+
   VkPhysicalDeviceFeatures enabled_features = {
     .samplerAnisotropy = VK_TRUE,
     .textureCompressionBC = VK_TRUE,
@@ -119,6 +129,9 @@ vulkan_device_create_device(vulkan_device *self)
     .queueCreateInfoCount = 1,
     .pQueueCreateInfos = &queue_info,
     .pEnabledFeatures = &enabled_features,
+    .enabledExtensionCount = ARRAY_SIZE(enabled_extensions),
+    .ppEnabledExtensionNames = (const char *const *)enabled_extensions,
+
   };
 
   VkResult result =

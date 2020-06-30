@@ -294,16 +294,20 @@ _check_graphics_api_support(xr_example* self)
     .type = XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR,
   };
   PFN_xrGetVulkanGraphicsRequirementsKHR GetVulkanGraphicsRequirements = NULL;
-  XrResult result = xrGetInstanceProcAddr(
-    self->instance, "xrGetVulkanGraphicsRequirementsKHR",
-    (PFN_xrVoidFunction*)(&GetVulkanGraphicsRequirements));
-  if (!xr_result(result, "Failed to retrieve OpenXR Vulkan function pointer!"))
+  XrResult result =
+    xrGetInstanceProcAddr(self->instance, "xrGetVulkanGraphicsRequirementsKHR",
+                          (PFN_xrVoidFunction*)&GetVulkanGraphicsRequirements);
+  if (!xr_result(result, "Failed to load xrGetVulkanGraphicsRequirementsKHR."))
     return false;
 
   result =
     GetVulkanGraphicsRequirements(self->instance, self->system_id, &vk_reqs);
   if (!xr_result(result, "Failed to get Vulkan graphics requirements!"))
     return false;
+
+  xrg_log_i("XrGraphicsRequirementsVulkanKHR:");
+  xrg_log_i("minApiVersionSupported: %d", vk_reqs.minApiVersionSupported);
+  xrg_log_i("maxApiVersionSupported: %d", vk_reqs.maxApiVersionSupported);
 
   XrVersion desired_version = XR_MAKE_VERSION(1, 0, 0);
   if (desired_version > vk_reqs.maxApiVersionSupported ||
@@ -314,6 +318,51 @@ _check_graphics_api_support(xr_example* self)
     xrg_log_e("maxApiVersionSupported %lu", vk_reqs.maxApiVersionSupported);
     return false;
   }
+
+  return true;
+}
+
+static bool
+_get_vk_instance_extensions(xr_example* self)
+{
+  PFN_xrGetVulkanInstanceExtensionsKHR fun = NULL;
+  XrResult res =
+    xrGetInstanceProcAddr(self->instance, "xrGetVulkanInstanceExtensionsKHR",
+                          (PFN_xrVoidFunction*)&fun);
+  if (!xr_result(res, "Failed to load xrGetVulkanInstanceExtensionsKHR."))
+    return false;
+
+  uint32_t size = 0;
+  res = fun(self->instance, self->system_id, 0, &size, NULL);
+
+  xrg_log_d("We found %d extensions", size);
+
+  char* names = malloc(sizeof(char) * size);
+  fun(self->instance, self->system_id, size, &size, names);
+
+  xrg_log_i("xrGetVulkanInstanceExtensionsKHR: %s", names);
+
+  return true;
+}
+
+static bool
+_init_vk_device(xr_example* self,
+                VkInstance vk_instance,
+                VkPhysicalDevice* physical_device)
+{
+
+  PFN_xrGetVulkanGraphicsDeviceKHR fun = NULL;
+  XrResult res = xrGetInstanceProcAddr(
+    self->instance, "xrGetVulkanGraphicsDeviceKHR", (PFN_xrVoidFunction*)&fun);
+
+  if (!xr_result(res, "Failed to load xrGetVulkanGraphicsDeviceKHR."))
+    return false;
+
+  res = fun(self->instance, self->system_id, vk_instance, physical_device);
+
+  if (!xr_result(res, "Failed to get Vulkan graphics device."))
+    return false;
+
   return true;
 }
 
@@ -697,10 +746,7 @@ _init_proj(xr_example* self, xr_proj* proj)
 bool
 xr_init(xr_example* self,
         VkInstance instance,
-        VkPhysicalDevice physical_device,
-        VkDevice device,
-        uint32_t queue_family_index,
-        uint32_t queue_index)
+        VkPhysicalDevice* physical_device)
 {
   self->is_visible = true;
   self->is_runnting = true;
@@ -723,6 +769,23 @@ xr_init(xr_example* self,
   if (!_check_graphics_api_support(self))
     return false;
 
+  if (!_get_vk_instance_extensions(self))
+    return false;
+
+  if (!_init_vk_device(self, instance, physical_device))
+    return false;
+
+  return true;
+}
+
+bool
+xr_init_post_vk(xr_example* self,
+                VkInstance instance,
+                VkPhysicalDevice physical_device,
+                VkDevice device,
+                uint32_t queue_family_index,
+                uint32_t queue_index)
+{
   self->graphics_binding = (XrGraphicsBindingVulkanKHR){
     .type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR,
     .instance = instance,

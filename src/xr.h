@@ -79,10 +79,15 @@ typedef struct xr_example
 bool
 xr_init(xr_example* self,
         VkInstance instance,
-        VkPhysicalDevice physical_device,
-        VkDevice device,
-        uint32_t queue_family_index,
-        uint32_t queue_index);
+        VkPhysicalDevice* physical_device);
+
+bool
+xr_init_post_vk(xr_example* self,
+                VkInstance instance,
+                VkPhysicalDevice physical_device,
+                VkDevice device,
+                uint32_t queue_family_index,
+                uint32_t queue_index);
 
 void
 xr_cleanup(xr_example* self);

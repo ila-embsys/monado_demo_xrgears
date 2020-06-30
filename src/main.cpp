@@ -57,8 +57,8 @@ public:
   VkCommandBuffer *sky_draw_cmd;
 #endif
 
-  VkDevice device;
-  VkPhysicalDevice physical_device;
+  VkDevice device = VK_NULL_HANDLE;
+  VkPhysicalDevice physical_device = VK_NULL_HANDLE;
   VkCommandPool cmd_pool;
   VkQueue queue;
   VkPhysicalDeviceFeatures device_features;
@@ -343,11 +343,18 @@ public:
   init()
   {
     init_vulkan();
+
+    if (!xr_init(&xr, context.instance, &physical_device)) {
+      xrg_log_e("OpenXR graphics initialization failed.");
+      return false;
+    }
+
+    init_vulkan_device();
     create_pipeline_cache();
     create_command_pool(0);
 
-    if (!xr_init(&xr, context.instance, physical_device, device,
-                 vk_device->graphics_family_index, 0)) {
+    if (!xr_init_post_vk(&xr, context.instance, physical_device, device,
+                         vk_device->graphics_family_index, 0)) {
       xrg_log_e("OpenXR initialization failed.");
       return false;
     }
@@ -442,54 +449,16 @@ public:
   }
 
   void
-  init_physical_device()
-  {
-    VkResult err;
-
-    // Physical device
-    uint32_t gpu_count = 0;
-    // Get number of available physical devices
-    vk_check(vkEnumeratePhysicalDevices(context.instance, &gpu_count, nullptr));
-    assert(gpu_count > 0);
-    // Enumerate devices
-    std::vector<VkPhysicalDevice> physicalDevices(gpu_count);
-    err = vkEnumeratePhysicalDevices(context.instance, &gpu_count,
-                                     physicalDevices.data());
-
-    xrg_log_f_if(err, "Could not enumerate physical devices: %s",
-                 vk_result_to_string(err));
-
-    // Select first device by default
-    if (settings.gpu == -1)
-      settings.gpu = 0;
-
-    // Select physical device to be used for the Vulkan example
-    // Defaults to the first device unless specified by command line
-    uint32_t selected_device = 0;
-    if (settings.gpu > (int)gpu_count - 1) {
-      xrg_log_f(
-        "Selected device index %d is out of range,"
-        " reverting to device 0",
-        settings.gpu);
-    } else if (settings.gpu != 0) {
-      xrg_log_i("Selected Vulkan device %d", settings.gpu);
-      selected_device = settings.gpu;
-    }
-
-    physical_device = physicalDevices[selected_device];
-  }
-
-  void
   init_vulkan()
   {
     VkResult err = vulkan_context_create_instance(&context);
     xrg_log_f_if(err, "Could not create Vulkan instance: %s",
                  vk_result_to_string(err));
+  }
 
-    init_physical_device();
-
-    vkGetPhysicalDeviceFeatures(physical_device, &device_features);
-
+  void
+  init_vulkan_device()
+  {
     vk_device = vulkan_device_create(physical_device);
 
     VkResult res = vulkan_device_create_device(vk_device);
