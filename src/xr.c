@@ -133,6 +133,11 @@ _check_xr_extensions(xr_example* self, const char* vulkan_extension)
     xrg_log_i("Will use projection layer for sky rendering.");
   }
 
+  self->extensions.overlay =
+    is_extension_supported(XR_EXTX_OVERLAY_EXTENSION_NAME, props, count);
+  xrg_log_i("Runtime support for instance extension %s: %d",
+            XR_EXTX_OVERLAY_EXTENSION_NAME, self->extensions.overlay);
+
   return true;
 }
 
@@ -167,7 +172,7 @@ _enumerate_api_layers()
 static bool
 _create_instance(xr_example* self, char* vulkan_extension)
 {
-  const char* enabledExtensions[2] = { vulkan_extension };
+  const char* enabledExtensions[3] = { vulkan_extension };
   uint32_t num_extensions = 1;
 
   // only enables either equirect2 or equirect1, not both
@@ -175,6 +180,10 @@ _create_instance(xr_example* self, char* vulkan_extension)
     enabledExtensions[num_extensions++] = XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME;
   } else if (self->extensions.equirect1) {
     enabledExtensions[num_extensions++] = XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME;
+  }
+
+  if (self->extensions.overlay) {
+    enabledExtensions[num_extensions++] = XR_EXTX_OVERLAY_EXTENSION_NAME;
   }
 
   XrInstanceCreateInfo instanceCreateInfo = {
@@ -584,9 +593,19 @@ _create_vk_device2(xr_example* self,
 static bool
 _create_session(xr_example* self)
 {
+  XrSessionCreateInfoOverlayEXTX overlay_info = {
+    .type = XR_TYPE_SESSION_CREATE_INFO_OVERLAY_EXTX,
+    .next = &self->graphics_binding,
+    .sessionLayersPlacement = 1,
+  };
+
+  void* session_next = self->extensions.overlay
+                         ? (void*)&overlay_info
+                         : (void*)&self->graphics_binding;
+
   XrSessionCreateInfo session_create_info = {
     .type = XR_TYPE_SESSION_CREATE_INFO,
-    .next = &self->graphics_binding,
+    .next = session_next,
     .systemId = self->system_id,
   };
 
@@ -798,6 +817,11 @@ xr_begin_frame(xr_example* self)
       }
       break;
     }
+    case XR_TYPE_EVENT_DATA_MAIN_SESSION_VISIBILITY_CHANGED_EXTX: {
+      XrEventDataMainSessionVisibilityChangedEXTX* event =
+        (XrEventDataMainSessionVisibilityChangedEXTX*)&runtimeEvent;
+      self->main_session_visible = event->visible;
+    }
     default: break;
     }
   } else if (pollResult == XR_EVENT_UNAVAILABLE) {
@@ -909,21 +933,23 @@ _select_layers(xr_example* self)
 {
   self->num_layers = 0;
 
-  switch(self->sky_type) {
-  case SKY_TYPE_PROJECTION:
-    self->layers[self->num_layers++] =
-      (const XrCompositionLayerBaseHeader* const)&self->sky.layer;
-    break;
-  case SKY_TYPE_EQUIRECT1:
-    self->layers[self->num_layers++] =
-      (const XrCompositionLayerBaseHeader* const)&self->equirect.layer_v1;
-    break;
-  case SKY_TYPE_EQUIRECT2:
-    self->layers[self->num_layers++] =
-      (const XrCompositionLayerBaseHeader* const)&self->equirect.layer_v2;
-    break;
-  default:
-    break;
+  // if a main session is visible, don't occlude it with skybox
+  if (!self->main_session_visible) {
+    switch (self->sky_type) {
+    case SKY_TYPE_PROJECTION:
+      self->layers[self->num_layers++] =
+        (const XrCompositionLayerBaseHeader* const)&self->sky.layer;
+      break;
+    case SKY_TYPE_EQUIRECT1:
+      self->layers[self->num_layers++] =
+        (const XrCompositionLayerBaseHeader* const)&self->equirect.layer_v1;
+      break;
+    case SKY_TYPE_EQUIRECT2:
+      self->layers[self->num_layers++] =
+        (const XrCompositionLayerBaseHeader* const)&self->equirect.layer_v2;
+      break;
+    default: break;
+    }
   }
 
 #if ENABLE_GEARS_LAYER
@@ -1048,6 +1074,7 @@ xr_init_pre_vk(xr_example* self, char* vulkan_extension)
 {
   self->is_visible = true;
   self->is_runnting = true;
+  self->main_session_visible = false;
 
   if (!_check_xr_extensions(self, vulkan_extension))
     return false;

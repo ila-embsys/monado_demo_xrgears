@@ -56,7 +56,10 @@ typedef struct xr_example
   {
     bool equirect2;
     bool equirect1;
+    bool overlay;
   } extensions;
+
+  bool main_session_visible;
 
   XrInstance instance;
   XrSession session;
