@@ -627,10 +627,16 @@ xr_end_frame(xr_example* self)
   XrResult result;
 
   const XrCompositionLayerBaseHeader* const layers[] = {
+#if ENABLE_SKY_LAYER
     (const XrCompositionLayerBaseHeader* const) & self->sky.layer,
+#endif
+#if ENABLE_GEARS_LAYER
     (const XrCompositionLayerBaseHeader* const) & self->gears.layer,
+#endif
+#if ENABLE_QUAD_LAYERS
     (const XrCompositionLayerBaseHeader* const) & self->quad.layer,
     (const XrCompositionLayerBaseHeader* const) & self->quad2.layer,
+#endif
   };
   XrFrameEndInfo frameEndInfo = {
     .type = XR_TYPE_FRAME_END_INFO,
@@ -661,8 +667,12 @@ _cleanup_proj(xr_example* self, xr_proj* proj)
 void
 xr_cleanup(xr_example* self)
 {
+#if ENABLE_GEARS_LAYER
   _cleanup_proj(self, &self->gears);
+#endif
+#if ENABLE_SKY_LAYER
   _cleanup_proj(self, &self->sky);
+#endif
 
   xrDestroySpace(self->local_space);
   xrDestroySession(self->session);
@@ -731,8 +741,13 @@ xr_init(xr_example* self,
   if (!_begin_session(self))
     return false;
 
+#if ENABLE_GEARS_LAYER
   _init_proj(self, &self->gears);
+#endif
+
+#if ENABLE_SKY_LAYER
   _init_proj(self, &self->sky);
+#endif
 
   return true;
 }

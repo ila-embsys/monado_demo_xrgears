@@ -20,7 +20,13 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
+#define ENABLE_SKY_LAYER 1
+#define ENABLE_GEARS_LAYER 1
+#define ENABLE_QUAD_LAYERS 1
+
+#if ENABLE_QUAD_LAYERS
 #include "xr_quad.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +52,12 @@ typedef struct xr_example
   XrViewConfigurationType view_config_type;
   XrViewConfigurationView* configuration_views;
 
-  xr_proj gears, sky;
+#if ENABLE_GEARS_LAYER
+  xr_proj gears;
+#endif
+#if ENABLE_SKY_LAYER
+  xr_proj sky;
+#endif
 
   uint32_t view_count;
 
@@ -58,8 +69,10 @@ typedef struct xr_example
 
   int64_t swapchain_format;
 
+#if ENABLE_QUAD_LAYERS
   xr_quad quad;
   xr_quad quad2;
+#endif
 
 } xr_example;
 
