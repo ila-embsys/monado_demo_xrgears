@@ -729,13 +729,14 @@ xr_cleanup(xr_example* self)
 }
 
 static bool
-_init_proj(xr_example* self, xr_proj* proj)
+_init_proj(xr_example* self, XrCompositionLayerFlags flags, xr_proj* proj)
 {
   if (!_create_swapchains(self, proj))
     return false;
   _create_projection_views(self, proj);
   proj->layer = (XrCompositionLayerProjection){
     .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
+    .layerFlags = flags,
     .space = self->local_space,
     .viewCount = self->view_count,
     .views = proj->views,
@@ -805,11 +806,12 @@ xr_init_post_vk(xr_example* self,
     return false;
 
 #if ENABLE_GEARS_LAYER
-  _init_proj(self, &self->gears);
+  _init_proj(self, XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+             &self->gears);
 #endif
 
 #if ENABLE_SKY_LAYER
-  _init_proj(self, &self->sky);
+  _init_proj(self, XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT, &self->sky);
 #endif
 
   return true;
