@@ -51,7 +51,7 @@ void
 pipeline_equirect::init_texture(vulkan_device *vk_device, VkQueue queue)
 {
   vulkan_texture_load_ktx(&texture, rooftop_bytes(), rooftop_size(), vk_device,
-                          queue, VK_FORMAT_BC2_UNORM_BLOCK,
+                          queue, VK_FORMAT_BC2_SRGB_BLOCK,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 

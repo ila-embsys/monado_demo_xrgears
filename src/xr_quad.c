@@ -35,7 +35,7 @@ _create_quad_swapchain(xr_quad* self, XrSession session, XrExtent2Di* extent)
                   XR_SWAPCHAIN_USAGE_SAMPLED_BIT,
     .createFlags = 0,
     // just use the first enumerated format
-    .format = VK_FORMAT_R8G8B8A8_UNORM,
+    .format = VK_FORMAT_R8G8B8A8_SRGB,
     .sampleCount = 1,
     .width = extent->width,
     .height = extent->height,
