@@ -100,6 +100,15 @@ _check_vk_extension()
                  XR_KHR_VULKAN_ENABLE_EXTENSION_NAME))
     return false;
 
+
+  result =
+    is_extension_supported(XR_EXTX_OVERLAY_EXTENSION_NAME,
+                           instanceExtensionProperties, instanceExtensionCount);
+  if (!xr_result(result,
+                 "Runtime does not support required instance extension %s\n",
+                 XR_EXTX_OVERLAY_EXTENSION_NAME))
+    return false;
+
   return true;
 }
 
@@ -135,13 +144,14 @@ static bool
 _create_instance(xr_example* self)
 {
   const char* const enabledExtensions[] = {
-    XR_KHR_VULKAN_ENABLE_EXTENSION_NAME
+    XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
+    XR_EXTX_OVERLAY_EXTENSION_NAME,
   };
 
   XrInstanceCreateInfo instanceCreateInfo = {
     .type = XR_TYPE_INSTANCE_CREATE_INFO,
     .createFlags = 0,
-    .enabledExtensionCount = 1,
+    .enabledExtensionCount = ARRAY_SIZE(enabledExtensions),
     .enabledExtensionNames = enabledExtensions,
     .enabledApiLayerCount = 0,
     .applicationInfo = {
@@ -787,8 +797,15 @@ xr_init_post_vk(xr_example* self,
                 uint32_t queue_family_index,
                 uint32_t queue_index)
 {
+  XrSessionCreateInfoOverlayEXTX overlay_info = {
+    .type = XR_TYPE_SESSION_CREATE_INFO_OVERLAY_EXTX,
+    .sessionLayersPlacement = 1,
+  };
+
+
   self->graphics_binding = (XrGraphicsBindingVulkanKHR){
     .type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR,
+    .next = &overlay_info,
     .instance = instance,
     .physicalDevice = physical_device,
     .device = device,
