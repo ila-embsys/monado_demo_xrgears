@@ -150,15 +150,6 @@ public:
     vk_check(vkEndCommandBuffer(*cb));
   }
 
-  static inline void
-  fix_handedness(glm::mat4 &m)
-  {
-    m[0][1] = -m[0][1];
-    m[1][0] = -m[1][0];
-    m[1][2] = -m[1][2];
-    m[2][1] = -m[2][1];
-  }
-
   static glm::mat4
   _create_projection_from_fov(const XrFovf fov,
                               const float near_z,
@@ -192,19 +183,18 @@ public:
   static glm::mat4
   _create_view_from_pose(XrPosef *pose)
   {
-    glm::quat quat = glm::quat(pose->orientation.w, pose->orientation.x,
-                               pose->orientation.y, pose->orientation.z);
+
+    glm::quat quat = glm::quat(pose->orientation.w * -1.0, pose->orientation.x,
+                               pose->orientation.y * -1.0, pose->orientation.z);
     glm::mat4 rotation = glm::mat4_cast(quat);
 
     glm::vec3 position =
-      glm::vec3(pose->position.x, pose->position.y, pose->position.z);
+      glm::vec3(pose->position.x, -pose->position.y, pose->position.z);
 
     glm::mat4 translation = glm::translate(glm::mat4(1.f), position);
     glm::mat4 view_glm = translation * rotation;
 
     glm::mat4 view_glm_inv = glm::inverse(view_glm);
-
-    fix_handedness(view_glm_inv);
 
     return view_glm_inv;
   }
