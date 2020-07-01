@@ -29,6 +29,7 @@ public:
   struct
   {
     glm::mat4 vp;
+    glm::vec4 position;
   } ubo_camera[2];
 
   struct
@@ -67,7 +68,10 @@ public:
   update_time(float animation_timer);
 
   void
-  update_vp(glm::mat4 projection, glm::mat4 view, uint32_t eye);
+  update_vp(glm::mat4 projection,
+            glm::mat4 view,
+            glm::vec4 position,
+            uint32_t eye);
 
   void
   init_uniform_buffers(vulkan_device *vk_device);

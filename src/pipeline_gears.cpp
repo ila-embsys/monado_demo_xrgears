@@ -376,9 +376,13 @@ pipeline_gears::update_time(float animation_timer)
 }
 
 void
-pipeline_gears::update_vp(glm::mat4 projection, glm::mat4 view, uint32_t eye)
+pipeline_gears::update_vp(glm::mat4 projection,
+                          glm::mat4 view,
+                          glm::vec4 position,
+                          uint32_t eye)
 {
   ubo_camera[eye].vp = projection * view;
+  ubo_camera[eye].position = position;
   memcpy(uniform_buffers.camera[eye].mapped, &ubo_camera[eye],
          sizeof(ubo_camera[eye]));
 }

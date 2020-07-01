@@ -23,6 +23,7 @@ uboModel;
 layout(binding = 2) uniform UBOCamera
 {
   mat4 vp;
+  vec4 position;
 }
 uboCamera;
 

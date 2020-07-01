@@ -225,7 +225,12 @@ public:
       glm::mat4 view = _create_view_from_pose(&xr.views[i].pose);
 
 #if ENABLE_GEARS_LAYER
-      ((pipeline_gears *)gears)->update_vp(projection, view, i);
+
+      glm::vec4 position =
+        glm::vec4(xr.views[i].pose.position.x, -xr.views[i].pose.position.y,
+                  xr.views[i].pose.position.z, 1.0f);
+
+      ((pipeline_gears *)gears)->update_vp(projection, view, position, i);
 #endif
 
 #if ENABLE_SKY_LAYER

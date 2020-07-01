@@ -33,8 +33,7 @@ uboLights;
 
 layout(binding = 2) uniform UBOCamera
 {
-  mat4 projection;
-  mat4 view;
+  mat4 vp;
   vec4 position;
 }
 uboCamera;
@@ -73,9 +72,9 @@ G_SchlicksmithGGX(float dotNL, float dotNV, float roughness)
 
 // Fresnel function
 vec3
-F_Schlick(float cosTheta, float metallic, vec3 reflectionColor)
+F_Schlick(float cosTheta, float metallic)
 {
-  vec3 F0 = mix(vec3(0.04) * reflectionColor, materialcolor(), metallic);
+  vec3 F0 = mix(vec3(0.04), materialcolor(), metallic);
   vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
   return F;
 }
@@ -105,7 +104,7 @@ BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
     // G = Geometric shadowing term (Microfacets shadowing)
     float G = G_SchlicksmithGGX(dotNL, dotNV, roughness);
     // F = Fresnel factor (Reflectance depending on angle of incidence)
-    vec3 F = F_Schlick(dotNV, metallic, lightColor);
+    vec3 F = F_Schlick(dotNV, metallic);
 
     vec3 spec = D * F * G / (4.0 * dotNL * dotNV);
 
