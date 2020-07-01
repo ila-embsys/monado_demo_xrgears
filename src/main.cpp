@@ -361,8 +361,7 @@ public:
         gears_buffers[i][j] = vulkan_framebuffer_create(device);
         vulkan_framebuffer_init(
           gears_buffers[i][j], vk_device, xr.gears.images[i][j].image,
-          //(VkFormat)xr.swapchain_format,
-          VK_FORMAT_R8G8B8A8_UNORM,
+          (VkFormat)xr.swapchain_format,
           xr.configuration_views[i].recommendedImageRectWidth,
           xr.configuration_views[i].recommendedImageRectHeight);
       }

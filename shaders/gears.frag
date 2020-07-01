@@ -135,7 +135,8 @@ main()
   color += Lo;
 
   // Gamma correct
-  color = pow(color, vec3(0.4545));
+  //color = pow(color, vec3(0.4545));
+  color = pow(color, vec3(0.9));
 
   outColor = vec4(color, 1.0);
 }
