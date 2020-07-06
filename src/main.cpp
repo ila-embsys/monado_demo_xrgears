@@ -204,17 +204,17 @@ public:
   {
     xr_begin_frame(&xr);
 
-    uint32_t buffer_index;
+    uint32_t buffer_index[2] = { 0, 0 };
     for (uint32_t i = 0; i < 2; i++) {
 #if ENABLE_GEARS_LAYER
-      if (!xr_aquire_swapchain(&xr, &xr.gears, i, &buffer_index)) {
+      if (!xr_aquire_swapchain(&xr, &xr.gears, i, &buffer_index[i])) {
         xrg_log_e("Could not aquire xr swapchain");
         return;
       }
 #endif
 
 #if ENABLE_SKY_LAYER
-      if (!xr_aquire_swapchain(&xr, &xr.sky, i, &buffer_index)) {
+      if (!xr_aquire_swapchain(&xr, &xr.sky, i, &buffer_index[i])) {
         xrg_log_e("Could not aquire xr swapchain");
         return;
       }
@@ -253,12 +253,14 @@ public:
     };
 
 #if ENABLE_GEARS_LAYER
-    submit_info.pCommandBuffers = &gears_draw_cmd[buffer_index];
+    // our command buffers are not tied to the swapchain buffer index,
+    // but for convenience we reuse the acquired index of the first view.
+    submit_info.pCommandBuffers = &gears_draw_cmd[buffer_index[0]];
     vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
 #endif
 
 #if ENABLE_SKY_LAYER
-    submit_info.pCommandBuffers = &sky_draw_cmd[buffer_index];
+    submit_info.pCommandBuffers = &sky_draw_cmd[buffer_index[0]];
     vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
 #endif
 
