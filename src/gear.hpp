@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 #include "glm_inc.hpp"
 #include "vulkan_buffer.h"
