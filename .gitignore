@@ -5,3 +5,6 @@ shaders/sky_plane_equirect.frag.h
 shaders/sky_plane_equirect.vert.h
 textures/rooftop_night_4k_tonemapped.png.ktx.h
 
+.vscode/
+build*/
+textures/*.ktx.h
