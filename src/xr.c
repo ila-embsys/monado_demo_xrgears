@@ -481,7 +481,7 @@ _create_swapchains(xr_example* self, xr_proj* proj)
       .mipCount = 1,
     };
 
-    xrg_log_i("Swapchain %d dimenstions: %dx%d", i,
+    xrg_log_i("Swapchain %d dimensions: %dx%d", i,
               self->configuration_views[i].recommendedImageRectWidth,
               self->configuration_views[i].recommendedImageRectHeight);
 
