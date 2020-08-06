@@ -247,8 +247,8 @@ _set_up_views(xr_example* self)
   if (!xr_result(result, "Failed to get view configuration view count!"))
     return false;
 
-  self->configuration_views =
-    malloc(sizeof(XrViewConfigurationView) * self->view_count);
+  self->configuration_views = (XrViewConfigurationView*)malloc(
+    sizeof(XrViewConfigurationView) * self->view_count);
   for (uint32_t i = 0; i < self->view_count; ++i) {
     self->configuration_views[i].type = XR_TYPE_VIEW_CONFIGURATION_VIEW;
     self->configuration_views[i].next = NULL;
@@ -334,7 +334,7 @@ _get_vk_instance_extensions(xr_example* self)
 
   xrg_log_d("We found %d extensions", size);
 
-  char* names = malloc(sizeof(char) * size);
+  char* names = (char*)malloc(sizeof(char) * size);
   fun(self->instance, self->system_id, size, &size, names);
 
   xrg_log_i("xrGetVulkanInstanceExtensionsKHR: %s", names);
@@ -457,9 +457,11 @@ _create_swapchains(xr_example* self, xr_proj* proj)
     return false;
 
   /* First create swapchains and query the length for each swapchain. */
-  proj->swapchains = malloc(sizeof(XrSwapchain) * self->view_count);
+  proj->swapchains =
+    (XrSwapchain*)malloc(sizeof(XrSwapchain) * self->view_count);
 
-  proj->swapchain_length = malloc(sizeof(uint32_t) * self->view_count);
+  proj->swapchain_length =
+    (uint32_t*)malloc(sizeof(uint32_t) * self->view_count);
 
   self->swapchain_format = swapchainFormats[0];
 
@@ -503,10 +505,11 @@ _create_swapchains(xr_example* self, xr_proj* proj)
     }
   }
 
-  proj->images = malloc(sizeof(XrSwapchainImageVulkanKHR*) * self->view_count);
+  proj->images = (XrSwapchainImageVulkanKHR**)malloc(
+    sizeof(XrSwapchainImageVulkanKHR*) * self->view_count);
   for (uint32_t i = 0; i < self->view_count; i++) {
-    proj->images[i] =
-      malloc(sizeof(XrSwapchainImageVulkanKHR) * maxSwapchainLength);
+    proj->images[i] = (XrSwapchainImageVulkanKHR*)malloc(
+      sizeof(XrSwapchainImageVulkanKHR) * maxSwapchainLength);
   }
 
   for (uint32_t i = 0; i < self->view_count; i++) {
@@ -526,8 +529,8 @@ _create_swapchains(xr_example* self, xr_proj* proj)
 static void
 _create_projection_views(xr_example* self, xr_proj* proj)
 {
-  proj->views =
-    malloc(sizeof(XrCompositionLayerProjectionView) * self->view_count);
+  proj->views = (XrCompositionLayerProjectionView*)malloc(
+    sizeof(XrCompositionLayerProjectionView) * self->view_count);
 
   for (uint32_t i = 0; i < self->view_count; i++)
     proj->views[i] = (XrCompositionLayerProjectionView) {
@@ -597,7 +600,7 @@ xr_begin_frame(xr_example* self)
     .space = self->local_space,
   };
 
-  self->views = malloc(sizeof(XrView) * self->view_count);
+  self->views = (XrView*)malloc(sizeof(XrView) * self->view_count);
   for (uint32_t i = 0; i < self->view_count; i++) {
 
     self->views[i] = (XrView){ .type = XR_TYPE_VIEW };
