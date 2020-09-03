@@ -20,13 +20,15 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
-#define ENABLE_SKY_LAYER 1
+#define ENABLE_SKY_LAYER 0
 #define ENABLE_GEARS_LAYER 1
 #define ENABLE_QUAD_LAYERS 1
 
 #if ENABLE_QUAD_LAYERS
 #include "xr_quad.h"
 #endif
+
+#include "xr_equirect.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,6 +75,8 @@ typedef struct xr_example
   xr_quad quad;
   xr_quad quad2;
 #endif
+
+  xr_equirect equirect;
 
 } xr_example;
 
