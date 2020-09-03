@@ -100,6 +100,15 @@ _check_vk_extension()
     return false;
   }
 
+  result =
+    is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME,
+                           instanceExtensionProperties, instanceExtensionCount);
+  if (!xr_result(result,
+                 "Runtime does not support required instance extension %s\n",
+                 XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME))
+    return false;
+
+
   return true;
 }
 
@@ -135,7 +144,8 @@ static bool
 _create_instance(xr_example* self)
 {
   const char* const enabledExtensions[] = {
-    XR_KHR_VULKAN_ENABLE_EXTENSION_NAME
+    XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
+    XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME
   };
   XrInstanceCreateInfo instanceCreateInfo = {
     .type = XR_TYPE_INSTANCE_CREATE_INFO,
@@ -150,7 +160,7 @@ _create_instance(xr_example* self)
       },
     .enabledApiLayerCount = 0,
     .enabledApiLayerNames = NULL,
-    .enabledExtensionCount = 1,
+    .enabledExtensionCount = ARRAY_SIZE(enabledExtensions),
     .enabledExtensionNames = enabledExtensions,
   };
 
@@ -675,6 +685,7 @@ xr_end_frame(xr_example* self)
 #if ENABLE_SKY_LAYER
     (const XrCompositionLayerBaseHeader* const) & self->sky.layer,
 #endif
+    (const XrCompositionLayerBaseHeader* const) & self->equirect.layer_v2,
 #if ENABLE_GEARS_LAYER
     (const XrCompositionLayerBaseHeader* const) & self->gears.layer,
 #endif
