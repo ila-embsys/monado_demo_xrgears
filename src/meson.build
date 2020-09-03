@@ -7,6 +7,7 @@ sources = [
   'pipeline_gears.cpp',
   'xr.c',
   'xr_quad.c',
+  'xr_equirect.c',
   'textures.c',
   'vulkan_texture.c',
   'vulkan_buffer.c',

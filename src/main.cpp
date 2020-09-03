@@ -56,6 +56,8 @@ public:
   vulkan_texture quad_texture[3];
 #endif
 
+  vulkan_texture equirect_texture;
+
   xrgears(int argc, char *argv[])
   {
     if (!settings_parse_args(&settings, argc, argv))
@@ -324,6 +326,28 @@ public:
   }
 #endif
 
+  void
+  init_equirect()
+  {
+    XrExtent2Di extent = { .width = 4096, .height = 2048 };
+    XrPosef pose = {
+      .orientation = { .x = 0, .y = 0, .z = 0, .w = 1 },
+      .position = { .x = -2, .y = 1, .z = -3 },
+    };
+    xr_equirect_init(&xr.equirect, xr.session, xr.local_space, extent, pose);
+
+    for (uint32_t i = 0; i < xr.equirect.swapchain_length; i++) {
+      uint32_t buffer_index;
+      if (!xr_equirect_acquire_swapchain(&xr.equirect, &buffer_index))
+        xrg_log_e("Could not acquire equirect swapchain.");
+      vulkan_texture_load_ktx_from_image(
+        &equirect_texture, xr.equirect.images[i].image, station_bytes(), station_size(),
+        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      if (!xr_equirect_release_swapchain(&xr.equirect))
+        xrg_log_e("Could not release equirect swapchain.");
+    }
+  }
+
   bool
   init()
   {
@@ -398,6 +422,8 @@ public:
 #if ENABLE_QUAD_LAYERS
     init_quads();
 #endif
+
+    init_equirect();
 
     return true;
   }
