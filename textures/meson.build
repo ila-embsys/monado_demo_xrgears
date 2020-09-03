@@ -1,7 +1,7 @@
 textures = [
-  'rooftop_night_4k_tonemapped.png.ktx',
   'hawk.ktx',
-  'cat.ktx'
+  'cat.ktx',
+  'dresden_station_night_4k.ktx'
 ]
 
 xxd = find_program('xxd')

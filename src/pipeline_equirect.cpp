@@ -50,8 +50,8 @@ pipeline_equirect::~pipeline_equirect()
 void
 pipeline_equirect::init_texture(vulkan_device *vk_device, VkQueue queue)
 {
-  vulkan_texture_load_ktx(&texture, rooftop_bytes(), rooftop_size(), vk_device,
-                          queue, VK_FORMAT_BC2_SRGB_BLOCK,
+  vulkan_texture_load_ktx(&texture, station_bytes(), station_size(), vk_device,
+                          queue, VK_FORMAT_R8G8B8A8_SRGB,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
