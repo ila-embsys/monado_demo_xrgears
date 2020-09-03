@@ -3,6 +3,7 @@
 #include "cat.ktx.h"
 #include "hawk.ktx.h"
 #include "rooftop_night_4k_tonemapped.png.ktx.h"
+#include "dresden_station_night_4k.ktx.h"
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -37,4 +38,15 @@ const ktx_uint8_t*
 hawk_bytes()
 {
   return hawk_ktx;
+}
+
+ktx_size_t
+station_size()
+{
+  return ARRAY_SIZE(dresden_station_night_4k_ktx);
+}
+const ktx_uint8_t*
+station_bytes()
+{
+  return dresden_station_night_4k_ktx;
 }
