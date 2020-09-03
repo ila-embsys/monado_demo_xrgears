@@ -341,7 +341,7 @@ public:
   void
   init_equirect()
   {
-    XrExtent2Di extent = { .width = 1080, .height = 1920 };
+    XrExtent2Di extent = { .width = 4096, .height = 2048 };
     XrPosef pose = {
       .orientation = { .x = 0, .y = 0, .z = 0, .w = 1 },
       .position = { .x = -2, .y = 1, .z = -3 },
@@ -353,7 +353,7 @@ public:
       if (!xr_equirect_acquire_swapchain(&xr.equirect, &buffer_index))
         xrg_log_e("Could not acquire equirect swapchain.");
       vulkan_texture_load_ktx_from_image(
-        &equirect_texture, xr.equirect.images[i].image, rooftop_bytes(), rooftop_size(),
+        &equirect_texture, xr.equirect.images[i].image, station_bytes(), station_size(),
         vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_equirect_release_swapchain(&xr.equirect))
         xrg_log_e("Could not release equirect swapchain.");
