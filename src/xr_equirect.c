@@ -108,6 +108,8 @@ xr_equirect_release_swapchain(xr_equirect* self)
   return true;
 }
 
+#define PI 3.141f
+
 void
 xr_equirect_init(xr_equirect* self,
                  XrSession session,
@@ -149,8 +151,13 @@ typedef struct XrCompositionLayerEquirect2KHR {
     },
     .pose = pose,
     .radius = 1.0f,
-    .centralHorizontalAngle = 0.5f,
-    .upperVerticalAngle = 0.5f,
-    .lowerVerticalAngle = 0.5f
+    .centralHorizontalAngle = 2.0f * PI,
+    .upperVerticalAngle = PI / 2.0,
+    .lowerVerticalAngle = -PI / 2.0
   };
+
+  // Don't fill the whole sphere.
+  self->layer.centralHorizontalAngle /= 2.0f;
+  self->layer.upperVerticalAngle /= 2.0f;
+  self->layer.lowerVerticalAngle /= 2.0f;
 }
