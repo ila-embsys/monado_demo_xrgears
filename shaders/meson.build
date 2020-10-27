@@ -9,7 +9,7 @@ glslang = find_program('glslangValidator')
 
 if glslang.found()
   foreach s : shaders
-    r = run_command('glslangValidator', '-V', '-o', s + '.h', s, '--vn', 'shaders_' + s.underscorify())
+    r = run_command('glslangValidator', '-V', '-o', s + '.h', s, '--vn', s.underscorify())
     if r.returncode() != 0
       message('Could not compile shaders:')
       message(r.stderr().strip())
