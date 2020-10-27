@@ -340,8 +340,6 @@ pipeline_gears::init_pipeline(VkRenderPass render_pass,
     .pColorBlendState = &color_blend_state,
     .pDynamicState = &dynamic_state,
     .layout = pipeline_layout,
-    .basePipelineHandle = nullptr,
-    .basePipelineIndex = -1,
   };
 
 
