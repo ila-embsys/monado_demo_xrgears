@@ -283,9 +283,9 @@ pipeline_gears::init_pipeline(VkRenderPass render_pass,
   };
 
   std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages = {
-    vulkan_shader_load(device, shaders_gears_vert, sizeof(shaders_gears_vert),
+    vulkan_shader_load(device, gears_vert, sizeof(gears_vert),
                        VK_SHADER_STAGE_VERTEX_BIT),
-    vulkan_shader_load(device, shaders_gears_frag, sizeof(shaders_gears_frag),
+    vulkan_shader_load(device, gears_frag, sizeof(gears_frag),
                        VK_SHADER_STAGE_FRAGMENT_BIT)
   };
 
