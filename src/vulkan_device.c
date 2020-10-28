@@ -120,8 +120,8 @@ vulkan_device_create_device(vulkan_device *self)
   };
 
   VkPhysicalDeviceFeatures enabled_features = {
-    .samplerAnisotropy = VK_TRUE,
-    .textureCompressionBC = VK_TRUE,
+    //.samplerAnisotropy = VK_TRUE,
+    //.textureCompressionBC = VK_TRUE,
   };
 
   VkDeviceCreateInfo device_info = {
