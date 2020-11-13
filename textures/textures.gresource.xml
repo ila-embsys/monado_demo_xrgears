@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/textures">
+    <file>cat.ktx</file>
+    <file>dresden_station_night_4k.ktx</file>
+    <file>hawk.ktx</file>
+  </gresource>
+</gresources>

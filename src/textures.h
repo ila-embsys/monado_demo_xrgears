@@ -7,31 +7,39 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "ktx_texture.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-ktx_size_t
-rooftop_size(void);
-const ktx_uint8_t*
-rooftop_bytes(void);
+#ifndef XR_OS_ANDROID
+#include <gio/gio.h>
+const char*
+gio_get_asset(const gchar* path, gsize* size);
+#else
+#include <jni.h>
+#include <android/asset_manager.h>
 
-ktx_size_t
-cat_size(void);
-const ktx_uint8_t*
-cat_bytes(void);
+typedef struct
+{
+  JavaVM* vm;
+  JNIEnv* env;
+  jobject activity;
+  AAssetManager* mgr;
+} android_context;
 
-ktx_size_t
-hawk_size(void);
-const ktx_uint8_t*
-hawk_bytes(void);
-
-ktx_size_t
-station_size(void);
-const ktx_uint8_t*
-station_bytes(void);
+static android_context global_android_context;
+bool
+android_context_init(android_context* context,
+                     JavaVM* vm,
+                     JNIEnv* env,
+                     jobject activity);
+char*
+android_get_asset(android_context* context,
+                  const char* file_name,
+                  size_t* length);
+#endif
 
 #ifdef __cplusplus
 }
