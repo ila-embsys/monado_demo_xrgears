@@ -52,7 +52,7 @@ xr_result(XrResult result, const char* format, ...)
 
   va_list args;
   va_start(args, format);
-  vprintf(formatRes, args);
+  xrg_log_e(formatRes, args);
   va_end(args);
   return false;
 }
