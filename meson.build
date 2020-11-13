@@ -5,7 +5,9 @@ project('xrgears', ['c', 'cpp'], version: '1.0.1',
 )
 
 project_args = ['-I' + meson.build_root(),
-   '-Wno-missing-field-initializers'
+  '-Wno-missing-field-initializers',
+  '-DXR_USE_GRAPHICS_API_VULKAN',
+  '-DXR_USE_PLATFORM_XLIB'
 ]
 
 compiler = meson.get_compiler('cpp')
