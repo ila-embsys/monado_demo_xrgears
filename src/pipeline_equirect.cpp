@@ -50,8 +50,13 @@ pipeline_equirect::~pipeline_equirect()
 void
 pipeline_equirect::init_texture(vulkan_device *vk_device, VkQueue queue)
 {
-  vulkan_texture_load_ktx(&texture, station_bytes(), station_size(), vk_device,
-                          queue, VK_FORMAT_R8G8B8A8_SRGB,
+  size_t station_size;
+  const char *station_bytes =
+    gio_get_asset("/textures/dresden_station_night_4k.ktx", &station_size);
+
+  vulkan_texture_load_ktx(&texture, (const ktx_uint8_t *) station_bytes,
+                          station_size, vk_device, queue,
+                          VK_FORMAT_R8G8B8A8_SRGB,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 

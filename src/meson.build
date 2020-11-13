@@ -15,6 +15,7 @@ sources = [
   'vulkan_context.c',
   'settings.c',
   'vulkan_framebuffer.c',
+  texture_resources
 ]
 
 include_dirs = [
@@ -26,7 +27,8 @@ deps = [
   vulkan_dep,
   openxr_dep,
   m_dep,
-  cpp_dep
+  cpp_dep,
+  gio_dep
 ]
 
 executable('xrgears', sources, dependencies: deps,

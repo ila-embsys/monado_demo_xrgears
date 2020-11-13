@@ -291,13 +291,17 @@ public:
     };
     xr_quad_init(&xr.quad, xr.session, xr.local_space, extent, pose, size);
 
+    size_t hawk_size;
+    const char *hawk_bytes = gio_get_asset("/textures/hawk.ktx", &hawk_size);
+
     for (uint32_t i = 0; i < xr.quad.swapchain_length; i++) {
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
       vulkan_texture_load_ktx_from_image(
-        &quad_texture[i], xr.quad.images[i].image, hawk_bytes(), hawk_size(),
-        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        &quad_texture[i], xr.quad.images[i].image,
+        (const ktx_uint8_t *)hawk_bytes, hawk_size, vk_device, queue,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_quad_release_swapchain(&xr.quad))
         xrg_log_e("Could not release quad swapchain.");
     }
@@ -313,13 +317,17 @@ public:
     };
     xr_quad_init(&xr.quad2, xr.session, xr.local_space, extent2, pose2, size2);
 
+    size_t cat_size;
+    const char *cat_bytes = gio_get_asset("/textures/cat.ktx", &cat_size);
+
     for (uint32_t i = 0; i < xr.quad2.swapchain_length; i++) {
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad2, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
       vulkan_texture_load_ktx_from_image(
-        &quad_texture[i], xr.quad2.images[i].image, cat_bytes(), cat_size(),
-        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        &quad_texture[i], xr.quad2.images[i].image,
+        (const ktx_uint8_t *)cat_bytes, cat_size, vk_device, queue,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_quad_release_swapchain(&xr.quad2))
         xrg_log_e("Could not release quad swapchain.");
     }

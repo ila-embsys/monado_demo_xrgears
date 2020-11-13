@@ -1,41 +1,35 @@
 #include "textures.h"
 
-#include "cat.ktx.h"
-#include "hawk.ktx.h"
-#include "dresden_station_night_4k.ktx.h"
+#include "log.h"
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#include <gio/gio.h>
 
+static gboolean
+_load_resource(const gchar *path, GBytes **res)
+{
+  GError *error = NULL;
+  *res = g_resources_lookup_data(path, G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
 
-ktx_size_t
-cat_size()
-{
-  return ARRAY_SIZE(cat_ktx);
-}
-const ktx_uint8_t*
-cat_bytes()
-{
-  return cat_ktx;
-}
+  if (error != NULL) {
+    g_printerr("Unable to read file: %s\n", error->message);
+    g_error_free(error);
+    return FALSE;
+  }
 
-ktx_size_t
-hawk_size()
-{
-  return ARRAY_SIZE(hawk_ktx);
-}
-const ktx_uint8_t*
-hawk_bytes()
-{
-  return hawk_ktx;
+  return TRUE;
 }
 
-ktx_size_t
-station_size()
+const char *
+gio_get_asset(const gchar *path, gsize *size)
 {
-  return ARRAY_SIZE(dresden_station_night_4k_ktx);
-}
-const ktx_uint8_t*
-station_bytes()
-{
-  return dresden_station_night_4k_ktx;
+
+  GBytes *bytes = NULL;
+
+  if (!_load_resource(path, &bytes)) {
+    xrg_log_e("Could not load resource %s", path);
+  }
+
+  const gchar *data = g_bytes_get_data(bytes, size);
+
+  return data;
 }

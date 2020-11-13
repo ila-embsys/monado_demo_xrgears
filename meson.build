@@ -23,6 +23,7 @@ add_project_arguments([project_args], language: ['c', 'cpp'])
 vulkan_dep = dependency('vulkan')
 openxr_dep = dependency('openxr')
 glm_dep = dependency('glm')
+gio_dep = dependency('gio-2.0', version: '>= 2.50')
 
 # needed for clang
 m_dep = compiler.find_library('m')
