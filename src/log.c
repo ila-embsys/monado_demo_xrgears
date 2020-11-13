@@ -9,8 +9,14 @@
 
 #include "log.h"
 
-#define LOG_TO_STD_ERR 0
+#ifdef XR_OS_ANDROID
+#include <android/log.h>
+#define USE_COLOR 0
+#else
 #define USE_COLOR 1
+#endif
+
+#define LOG_TO_STD_ERR 0
 #define RESET_COLOR "\e[0m"
 
 #define ENUM_TO_STR(r)                                                         \
@@ -78,8 +84,9 @@ FILE *
 xrg_log_type_stream(xrg_log_type t)
 {
 #ifdef LOG_TO_STD_ERR
+  (void)t;
   return stderr;
-#endif
+#else
   switch (t) {
   case LOG_DEBUG:
   case LOG_INFO:
@@ -87,14 +94,32 @@ xrg_log_type_stream(xrg_log_type t)
   case LOG_ERROR:
   case LOG_FATAL: return stderr;
   }
+#endif
 }
+
+#ifdef XR_OS_ANDROID
+android_LogPriority
+android_level(xrg_log_type t)
+{
+  switch (t) {
+  case LOG_DEBUG: return ANDROID_LOG_DEBUG;
+  case LOG_WARNING: return ANDROID_LOG_WARN;
+  case LOG_INFO: return ANDROID_LOG_INFO;
+  case LOG_ERROR: return ANDROID_LOG_ERROR;
+  case LOG_FATAL: return ANDROID_LOG_FATAL;
+  default: return ANDROID_LOG_INFO;
+  }
+}
+#endif
 
 void
 xrg_log_values(
   const char *file, int line, xrg_log_type t, const char *format, va_list args)
 {
+#ifdef XR_OS_ANDROID
+  __android_log_vprint(android_level(t), "xrgears", format, args);
+#else
   FILE *stream = xrg_log_type_stream(t);
-
 #if USE_COLOR
   char code_str[7];
   snprintf(code_str, sizeof(code_str), "\e[%dm", xrg_log_type_color(t));
@@ -109,6 +134,7 @@ xrg_log_values(
   fprintf(stream, "\n");
   if (t == LOG_FATAL)
     exit(1);
+#endif
 }
 
 void
