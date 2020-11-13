@@ -24,6 +24,13 @@
 class xrgears
 {
 public:
+  struct android_app *app;
+
+  bool is_initialized = false;
+
+  int32_t width;
+  int32_t height;
+
   bool quit = false;
   float animation_timer = 0.0;
   float revolutions_per_second = 0.0625;
@@ -401,10 +408,15 @@ public:
   bool
   init()
   {
-
     xr.near_z = 0.05f;
     xr.far_z = 100.0f;
 
+#ifdef XR_OS_ANDROID
+      if (!xr_init_android(&xr, app)) {
+          xrg_log_e("Android initialization failed.");
+          return false;
+      }
+#endif
     /*
      * vulkan_enable2 lets the runtime create a VkInstance and VkDevice, so we
      * let xr_init2 create context.instance and this->vk_device.
@@ -510,6 +522,8 @@ public:
     if (xr.sky_type == SKY_TYPE_EQUIRECT1 || xr.sky_type == SKY_TYPE_EQUIRECT2)
       init_equirect();
 
+    is_initialized = true;
+
     return true;
   }
 
@@ -610,6 +624,58 @@ public:
   }
 };
 
+
+#ifdef XR_OS_ANDROID
+static void
+engine_handle_cmd(struct android_app *app, int32_t cmd)
+{
+  auto *engine = (xrgears *)app->userData;
+  if (cmd == APP_CMD_INIT_WINDOW) {
+    if (!engine->init()) {
+      xrg_log_e("Initialization failed.");
+    }
+  }
+}
+
+void
+android_main(struct android_app *state)
+{
+  xrgears *engine = new xrgears(0, nullptr);
+  state->userData = engine;
+  state->onAppCmd = engine_handle_cmd;
+  engine->app = state;
+
+  android_context_init(&global_android_context, engine->app->activity->vm,
+                       engine->app->activity->env,
+                       engine->app->activity->clazz);
+
+  while (true) {
+    int events;
+    struct android_poll_source *source;
+
+    // If not animating, we will block forever waiting for events.
+    // If animating, we loop until all events are read, then continue
+    // to draw the next frame of animation.
+    while (ALooper_pollAll(0, nullptr, &events, (void **)&source) >= 0) {
+
+      // Process this event.
+      if (source != nullptr) {
+        source->process(state, source);
+      }
+
+
+      // Check if we are exiting.
+      if (state->destroyRequested != 0) {
+        // engine_term_display(&engine);
+        return;
+      }
+    }
+
+    if (engine->is_initialized)
+      engine->render();
+  }
+}
+#else
 static xrgears *app;
 static void
 sigint_cb(int signum)
@@ -632,3 +698,4 @@ main(int argc, char *argv[])
 
   return 0;
 }
+#endif

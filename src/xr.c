@@ -181,7 +181,7 @@ _enumerate_api_layers()
 static bool
 _create_instance(xr_example* self, char* vulkan_extension)
 {
-  const char* enabledExtensions[4] = { vulkan_extension };
+  const char* enabledExtensions[5] = { vulkan_extension };
   uint32_t num_extensions = 1;
 
   // only enables either equirect2 or equirect1, not both
@@ -199,8 +199,15 @@ _create_instance(xr_example* self, char* vulkan_extension)
     enabledExtensions[num_extensions++] = XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME;
   }
 
+#ifdef XR_OS_ANDROID
+  enabledExtensions[num_extensions++] = XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME;
+#endif
+
   XrInstanceCreateInfo instanceCreateInfo = {
     .type = XR_TYPE_INSTANCE_CREATE_INFO,
+#ifdef XR_OS_ANDROID
+    .next = &self->instanceCreateInfoAndroid,
+#endif
     .createFlags = 0,
     .applicationInfo =
       (XrApplicationInfo){
@@ -1345,3 +1352,36 @@ xr_init_post_vk(xr_example* self,
 
   return true;
 }
+
+#ifdef XR_OS_ANDROID
+bool
+xr_init_android(xr_example* self, struct android_app *app) {
+  // Initialize the loader for this platform
+  PFN_xrInitializeLoaderKHR initializeLoader = NULL;
+
+  XrResult res = xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR",
+                                       (PFN_xrVoidFunction *)(&initializeLoader));
+
+  if (!XR_SUCCEEDED(res))
+    return false;
+
+  XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid;
+  memset(&loaderInitInfoAndroid, 0, sizeof(loaderInitInfoAndroid));
+  loaderInitInfoAndroid.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR;
+  loaderInitInfoAndroid.next = NULL;
+  loaderInitInfoAndroid.applicationVM = app->activity->vm;
+  loaderInitInfoAndroid.applicationContext = app->activity->clazz;
+  res = initializeLoader((const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
+
+  if (!xr_result(res, "Failed to initialize Android loader."))
+    return false;
+
+  self->instanceCreateInfoAndroid = (XrInstanceCreateInfoAndroidKHR) {
+    .type = XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR,
+    .applicationVM = app->activity->vm,
+    .applicationActivity = app->activity->clazz,
+  };
+
+  return true;
+}
+#endif

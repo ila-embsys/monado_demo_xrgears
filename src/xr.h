@@ -17,6 +17,10 @@
 
 #include <vulkan/vulkan.h>
 
+#ifdef XR_OS_ANDROID
+#include <android_native_app_glue.h>
+#include <jni.h>
+#endif
 
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
@@ -113,8 +117,12 @@ typedef struct xr_example
   const XrCompositionLayerBaseHeader** layers;
   uint32_t num_layers;
 
-
   xrg_settings* settings;
+
+#ifdef XR_OS_ANDROID
+  XrInstanceCreateInfoAndroidKHR instanceCreateInfoAndroid;
+#endif
+
 } xr_example;
 
 bool
@@ -150,6 +158,11 @@ xr_end_frame(xr_example* self);
 
 bool
 xr_result(XrResult result, const char* format, ...);
+
+#ifdef XR_OS_ANDROID
+bool
+xr_init_android(xr_example* self, struct android_app *app);
+#endif
 
 #ifdef __cplusplus
 }
