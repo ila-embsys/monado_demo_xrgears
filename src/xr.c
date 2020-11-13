@@ -302,10 +302,6 @@ _check_graphics_api_support(xr_example* self)
   if (!xr_result(result, "Failed to get Vulkan graphics requirements!"))
     return false;
 
-  xrg_log_i("XrGraphicsRequirementsVulkanKHR:");
-  xrg_log_i("minApiVersionSupported: %d", vk_reqs.minApiVersionSupported);
-  xrg_log_i("maxApiVersionSupported: %d", vk_reqs.maxApiVersionSupported);
-
   XrVersion desired_version = XR_MAKE_VERSION(1, 0, 0);
   if (desired_version > vk_reqs.maxApiVersionSupported ||
       desired_version < vk_reqs.minApiVersionSupported) {
@@ -331,8 +327,6 @@ _get_vk_instance_extensions(xr_example* self)
 
   uint32_t size = 0;
   res = fun(self->instance, self->system_id, 0, &size, NULL);
-
-  xrg_log_d("We found %d extensions", size);
 
   char* names = (char*)malloc(sizeof(char) * size);
   fun(self->instance, self->system_id, size, &size, names);
