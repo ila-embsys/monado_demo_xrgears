@@ -291,13 +291,23 @@ public:
     };
     xr_quad_init(&xr.quad, xr.session, xr.local_space, extent, pose, size);
 
+    size_t hawk_size;
+
+#ifdef XR_OS_ANDROID
+    const char *hawk_bytes =
+      android_get_asset(&global_android_context, "hawk.ktx", &hawk_size);
+#else
+    const char *hawk_bytes = gio_get_asset("/textures/hawk.ktx", &hawk_size);
+#endif
+
     for (uint32_t i = 0; i < xr.quad.swapchain_length; i++) {
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
       vulkan_texture_load_ktx_from_image(
-        &quad_texture[i], xr.quad.images[i].image, hawk_bytes(), hawk_size(),
-        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        &quad_texture[i], xr.quad.images[i].image,
+        (const ktx_uint8_t *)hawk_bytes, hawk_size, vk_device, queue,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_quad_release_swapchain(&xr.quad))
         xrg_log_e("Could not release quad swapchain.");
     }
@@ -313,13 +323,22 @@ public:
     };
     xr_quad_init(&xr.quad2, xr.session, xr.local_space, extent2, pose2, size2);
 
+    size_t cat_size;
+#ifdef XR_OS_ANDROID
+    const char *cat_bytes =
+      android_get_asset(&global_android_context, "cat.ktx", &cat_size);
+#else
+    const char *cat_bytes = gio_get_asset("/textures/cat.ktx", &cat_size);
+#endif
+
     for (uint32_t i = 0; i < xr.quad2.swapchain_length; i++) {
       uint32_t buffer_index;
       if (!xr_quad_acquire_swapchain(&xr.quad2, &buffer_index))
         xrg_log_e("Could not acquire quad swapchain.");
       vulkan_texture_load_ktx_from_image(
-        &quad_texture[i], xr.quad2.images[i].image, cat_bytes(), cat_size(),
-        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        &quad_texture[i], xr.quad2.images[i].image,
+        (const ktx_uint8_t *)cat_bytes, cat_size, vk_device, queue,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_quad_release_swapchain(&xr.quad2))
         xrg_log_e("Could not release quad swapchain.");
     }
@@ -336,13 +355,24 @@ public:
     };
     xr_equirect_init(&xr.equirect, xr.session, xr.local_space, extent, pose);
 
+    size_t station_size;
+
+#ifdef XR_OS_ANDROID
+    const char *station_bytes = android_get_asset(
+      &global_android_context, "dresden_station_night_4k.ktx", &station_size);
+#else
+    const char *station_bytes =
+      gio_get_asset("/textures/dresden_station_night_4k.ktx", &station_size);
+#endif
+
     for (uint32_t i = 0; i < xr.equirect.swapchain_length; i++) {
       uint32_t buffer_index;
       if (!xr_equirect_acquire_swapchain(&xr.equirect, &buffer_index))
         xrg_log_e("Could not acquire equirect swapchain.");
       vulkan_texture_load_ktx_from_image(
-        &equirect_texture, xr.equirect.images[i].image, station_bytes(), station_size(),
-        vk_device, queue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        &equirect_texture, xr.equirect.images[i].image,
+        (const ktx_uint8_t *)station_bytes, station_size, vk_device, queue,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       if (!xr_equirect_release_swapchain(&xr.equirect))
         xrg_log_e("Could not release equirect swapchain.");
     }
