@@ -16,7 +16,7 @@
 #include "sky_plane_equirect.frag.h"
 #include "sky_plane_equirect.vert.h"
 
-#include "textures.h"
+//#include "textures.h"
 
 #include <array>
 #include <vector>
@@ -50,9 +50,15 @@ pipeline_equirect::~pipeline_equirect()
 void
 pipeline_equirect::init_texture(vulkan_device *vk_device, VkQueue queue)
 {
-  vulkan_texture_load_ktx(&texture, rooftop_bytes(), rooftop_size(), vk_device,
-                          queue, VK_FORMAT_BC2_SRGB_BLOCK,
-                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  /*
+    size_t rooftop_size;
+    const char *rooftop_bytes = android_get_asset(&global_android_context,
+    "rooftop_night_4k_tonemapped.png.ktx", &rooftop_size);
+    vulkan_texture_load_ktx(&texture, (const ktx_uint8_t *) rooftop_bytes,
+    rooftop_size, vk_device, queue, VK_FORMAT_BC2_SRGB_BLOCK,
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    //free(rooftop_bytes);
+  */
 }
 
 void
