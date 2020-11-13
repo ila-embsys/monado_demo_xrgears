@@ -13,8 +13,7 @@
 
 #include <vulkan/vulkan.h>
 
-#define XR_USE_PLATFORM_XLIB 1
-#define XR_USE_GRAPHICS_API_VULKAN 1
+
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
