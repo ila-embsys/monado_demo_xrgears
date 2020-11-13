@@ -100,7 +100,7 @@ xrg_log_values(
   snprintf(code_str, sizeof(code_str), "\e[%dm", xrg_log_type_color(t));
   fprintf(stream, "%s[%s]%s ", code_str, xrg_log_type_str(t), RESET_COLOR);
 #else
-  fprintf(stream, "[%s] ", type_str(t));
+  fprintf(stream, "[%s] ", xrg_log_type_str(t));
 #endif
   char *fn = strdup(file);
   fprintf(stream, "%s:%d | ", basename(fn), line);
