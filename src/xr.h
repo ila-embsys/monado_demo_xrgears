@@ -15,6 +15,9 @@
 
 #include <vulkan/vulkan.h>
 
+#ifdef XR_OS_ANDROID
+#include <jni.h>
+#endif
 
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
@@ -79,10 +82,18 @@ typedef struct xr_example
 
 } xr_example;
 
+#ifdef XR_OS_ANDROID
+bool
+xr_init(xr_example* self,
+        VkInstance instance,
+        VkPhysicalDevice* physical_device,
+        XrInstanceCreateInfoAndroidKHR* instanceCreateInfoAndroid);
+#else
 bool
 xr_init(xr_example* self,
         VkInstance instance,
         VkPhysicalDevice* physical_device);
+#endif
 
 bool
 xr_init_post_vk(xr_example* self,

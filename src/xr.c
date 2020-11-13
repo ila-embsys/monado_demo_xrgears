@@ -141,14 +141,25 @@ _enumerate_api_layers()
 }
 
 static bool
+#ifdef XR_OS_ANDROID
+_create_instance(xr_example* self,
+                 XrInstanceCreateInfoAndroidKHR* instanceCreateInfoAndroid)
+#else
 _create_instance(xr_example* self)
+#endif
 {
   const char* const enabledExtensions[] = {
     XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
-    XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME
+    XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
+#ifdef XR_OS_ANDROID
+    XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME
+#endif
   };
   XrInstanceCreateInfo instanceCreateInfo = {
     .type = XR_TYPE_INSTANCE_CREATE_INFO,
+#ifdef XR_OS_ANDROID
+    .next = instanceCreateInfoAndroid,
+#endif
     .createFlags = 0,
     .applicationInfo =
       (XrApplicationInfo){
@@ -754,7 +765,12 @@ _init_proj(xr_example* self, XrCompositionLayerFlags flags, xr_proj* proj)
 bool
 xr_init(xr_example* self,
         VkInstance instance,
-        VkPhysicalDevice* physical_device)
+        VkPhysicalDevice* physical_device
+#ifdef XR_OS_ANDROID
+        ,
+        XrInstanceCreateInfoAndroidKHR* instanceCreateInfoAndroid
+#endif
+)
 {
   self->is_visible = true;
   self->is_runnting = true;
@@ -765,7 +781,11 @@ xr_init(xr_example* self,
   if (!_enumerate_api_layers())
     return false;
 
+#ifdef XR_OS_ANDROID
+  if (!_create_instance(self, instanceCreateInfoAndroid))
+#else
   if (!_create_instance(self))
+#endif
     return false;
 
   if (!_create_system(self))

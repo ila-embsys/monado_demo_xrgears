@@ -13,6 +13,9 @@
 
 #include <vulkan/vulkan.h>
 
+#ifdef XR_OS_ANDROID
+#include <jni.h>
+#endif
 
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>

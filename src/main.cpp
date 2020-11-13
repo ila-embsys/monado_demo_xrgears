@@ -19,9 +19,20 @@
 
 #include "textures.h"
 
+#ifdef XR_OS_ANDROID
+#include <android_native_app_glue.h>
+#endif
+
 class xrgears
 {
 public:
+  struct android_app *app;
+
+  bool is_initialized = false;
+
+  int32_t width;
+  int32_t height;
+
   bool quit = false;
   float animation_timer = 0.0;
   float revolutions_per_second = 0.0625;
@@ -383,11 +394,39 @@ public:
   {
     init_vulkan();
 
+#ifdef XR_OS_ANDROID
+    // Initialize the loader for this platform
+    PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
+    if (XR_SUCCEEDED(
+          xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR",
+                                (PFN_xrVoidFunction *)(&initializeLoader)))) {
+      XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid;
+      memset(&loaderInitInfoAndroid, 0, sizeof(loaderInitInfoAndroid));
+      loaderInitInfoAndroid.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR;
+      loaderInitInfoAndroid.next = NULL;
+      loaderInitInfoAndroid.applicationVM = app->activity->vm;
+      loaderInitInfoAndroid.applicationContext = app->activity->clazz;
+      initializeLoader(
+        (const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
+    }
+
+    XrInstanceCreateInfoAndroidKHR instanceCreateInfoAndroid = {
+      .type = XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR,
+      .applicationVM = app->activity->vm,
+      .applicationActivity = app->activity->clazz,
+    };
+
+    if (!xr_init(&xr, context.instance, &physical_device,
+                 &instanceCreateInfoAndroid)) {
+      xrg_log_e("OpenXR graphics initialization failed.");
+      return false;
+    }
+#else
     if (!xr_init(&xr, context.instance, &physical_device)) {
       xrg_log_e("OpenXR graphics initialization failed.");
       return false;
     }
-
+#endif
     init_vulkan_device();
     create_pipeline_cache();
     create_command_pool(0);
@@ -454,6 +493,8 @@ public:
 #endif
 
     init_equirect();
+
+    is_initialized = true;
 
     return true;
   }
@@ -550,6 +591,58 @@ public:
   }
 };
 
+
+#ifdef XR_OS_ANDROID
+static void
+engine_handle_cmd(struct android_app *app, int32_t cmd)
+{
+  auto *engine = (xrgears *)app->userData;
+  if (cmd == APP_CMD_INIT_WINDOW) {
+    if (!engine->init()) {
+      xrg_log_e("Initialization failed.");
+    }
+  }
+}
+
+void
+android_main(struct android_app *state)
+{
+  xrgears *engine = new xrgears(0, nullptr);
+  state->userData = engine;
+  state->onAppCmd = engine_handle_cmd;
+  engine->app = state;
+
+  android_context_init(&global_android_context, engine->app->activity->vm,
+                       engine->app->activity->env,
+                       engine->app->activity->clazz);
+
+  while (true) {
+    int events;
+    struct android_poll_source *source;
+
+    // If not animating, we will block forever waiting for events.
+    // If animating, we loop until all events are read, then continue
+    // to draw the next frame of animation.
+    while (ALooper_pollAll(0, nullptr, &events, (void **)&source) >= 0) {
+
+      // Process this event.
+      if (source != nullptr) {
+        source->process(state, source);
+      }
+
+
+      // Check if we are exiting.
+      if (state->destroyRequested != 0) {
+        // engine_term_display(&engine);
+        return;
+      }
+    }
+
+    if (engine->is_initialized)
+      engine->render();
+  }
+}
+#else
 static xrgears *app;
 static void
 sigint_cb(int signum)
@@ -572,3 +665,4 @@ main(int argc, char *argv[])
 
   return 0;
 }
+#endif
