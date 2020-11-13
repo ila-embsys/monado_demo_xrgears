@@ -1,23 +1,11 @@
 /*
  * xrgears
  *
- * Copyright 2016 Sascha Willems - www.saschawillems.de
- * Copyright 2017-2019 Collabora Ltd.
+ * Copyright 2017-2020 Collabora Ltd.
  *
  * Authors: Lubosz Sarnecki <lubosz.sarnecki@collabora.com>
  * SPDX-License-Identifier: MIT
  */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-#include <vulkan/vulkan.h>
-
-#include <csignal>
-#include <vector>
-#include <string>
 
 #include "gear.hpp"
 #include "vulkan_framebuffer.h"
