@@ -26,7 +26,7 @@ extern "C" {
 
 typedef struct xr_equirect
 {
-  XrCompositionLayerEquirect2KHR layer;
+  XrCompositionLayerEquirectKHR layer;
   XrSwapchain swapchain;
   uint32_t swapchain_length;
   XrSwapchainImageVulkanKHR* images;

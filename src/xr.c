@@ -105,9 +105,16 @@ _check_vk_extension()
                            instanceExtensionProperties, instanceExtensionCount);
   if (!xr_result(result,
                  "Runtime does not support required instance extension %s\n",
-                 XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME))
+                 XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME))
     return false;
 
+  result =
+    is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
+                           instanceExtensionProperties, instanceExtensionCount);
+  if (!xr_result(result,
+                 "Runtime does not support required instance extension %s\n",
+                 XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME))
+    return false;
 
   return true;
 }

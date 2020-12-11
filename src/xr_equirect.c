@@ -138,8 +138,23 @@ typedef struct XrCompositionLayerEquirect2KHR {
 } XrCompositionLayerEquirect2KHR;
   */
 
-  self->layer = (XrCompositionLayerEquirect2KHR){
-    .type = XR_TYPE_COMPOSITION_LAYER_EQUIRECT2_KHR,
+/*
+typedef struct XrCompositionLayerEquirectKHR {
+    XrStructureType             type;
+    const void* XR_MAY_ALIAS    next;
+    XrCompositionLayerFlags     layerFlags;
+    XrSpace                     space;
+    XrEyeVisibility             eyeVisibility;
+    XrSwapchainSubImage         subImage;
+    XrPosef                     pose;
+    float                       radius;
+    XrVector2f                  scale;
+    XrVector2f                  bias;
+} XrCompositionLayerEquirectKHR;
+ */
+
+  self->layer = (XrCompositionLayerEquirectKHR){
+    .type = XR_TYPE_COMPOSITION_LAYER_EQUIRECT_KHR,
     .layerFlags = XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT,
     .space = space,
     .eyeVisibility = XR_EYE_VISIBILITY_BOTH,
@@ -153,9 +168,13 @@ typedef struct XrCompositionLayerEquirect2KHR {
     },
     .pose = pose,
     .radius = 1.0f,
-    .centralHorizontalAngle = 2.0f * PI,
-    .upperVerticalAngle = PI / 2.0,
-    .lowerVerticalAngle = -PI / 2.0
+
+    .scale = { .x = 1, .y = 1 },
+    .bias = { .x = 0, .y = 0 }
+
+    //.centralHorizontalAngle = 2.0f * PI,
+    //.upperVerticalAngle = PI / 2.0,
+    //.lowerVerticalAngle = -PI / 2.0
   };
 
   // Don't fill the whole sphere.
