@@ -108,6 +108,7 @@ _check_vk_extension()
                  XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME))
     return false;
 
+/*
   result =
     is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
                            instanceExtensionProperties, instanceExtensionCount);
@@ -115,7 +116,7 @@ _check_vk_extension()
                  "Runtime does not support required instance extension %s\n",
                  XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME))
     return false;
-
+*/
   return true;
 }
 
@@ -157,7 +158,8 @@ _create_instance(xr_example* self)
 {
   const char* const enabledExtensions[] = {
     XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
-    XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
+    XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME,
+    // XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
 #ifdef XR_OS_ANDROID
     XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME
 #endif
