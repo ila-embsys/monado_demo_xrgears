@@ -52,7 +52,7 @@ _create_equirect_swapchain(xr_equirect* self,
 
   result = xrEnumerateSwapchainImages(self->swapchain, 0,
                                       &self->swapchain_length, NULL);
-  if (!xr_result(result, "Failed to enumerate swapchains"))
+  if (!xr_result(result, "Failed to enumerate swapchain lengths"))
     return false;
 
   xrg_log_d("quad_swapchain_length %d", self->swapchain_length);

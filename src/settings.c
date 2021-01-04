@@ -22,6 +22,7 @@ static void
 _init(xrg_settings *self)
 {
   self->gpu = -1;
+  self->vulkan_enable2 = true;
 }
 
 static const char *
@@ -31,6 +32,8 @@ _help_string()
          "\n"
          "Options:\n"
          "  -g, --gpu GPU            GPU to use (default: 0)\n"
+         "  -1  --vulkan_enable      Use XR_KHR_vulkan_enable instead of "
+         "XR_KHR_vulkan_enable2\n"
          "  -h, --help               Show this help\n";
 }
 
@@ -49,10 +52,11 @@ settings_parse_args(xrg_settings *self, int argc, char *argv[])
 {
   _init(self);
   int option_index = -1;
-  static const char *optstring = "hs:w:vfg:d:m:";
+  static const char *optstring = "h1g:";
 
 
   struct option long_options[] = { { "help", 0, 0, 0 },
+                                   { "vulkan_enable", 0, 0, 0 },
                                    { "gpu", 1, 0, 0 },
                                    { 0, 0, 0, 0 } };
 
@@ -67,11 +71,14 @@ settings_parse_args(xrg_settings *self, int argc, char *argv[])
     if (option_index != -1)
       optname = long_options[option_index].name;
 
-    if (opt == 'h' || strcmp(optname, "help") == 0) {
+    if (opt == 'h' || (optname && strcmp(optname, "help") == 0)) {
       printf("%s\n", _help_string());
       exit(0);
-    } else if (opt == 'g' || strcmp(optname, "gpu") == 0) {
+    } else if (opt == 'g' || (optname && strcmp(optname, "gpu") == 0)) {
       self->gpu = _parse_id(optarg);
+    } else if (opt == '1' ||
+               (optname && strcmp(optname, "vulkan_enable") == 0)) {
+      self->vulkan_enable2 = false;
     } else {
       xrg_log_f("Unknown option %s", optname);
     }

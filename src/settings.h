@@ -18,6 +18,7 @@ extern "C" {
 typedef struct
 {
   int gpu;
+  bool vulkan_enable2;
 } xrg_settings;
 
 bool

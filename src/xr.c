@@ -69,7 +69,7 @@ is_extension_supported(const char* name,
 }
 
 static bool
-_check_xr_extensions(xr_example* self)
+_check_vk_extensions(xr_example* self, const char* vulkan_extension)
 {
   XrResult result;
   uint32_t instanceExtensionCount = 0;
@@ -92,11 +92,10 @@ _check_xr_extensions(xr_example* self)
   if (!xr_result(result, "Failed to enumerate extension properties"))
     return false;
 
-  if (!is_extension_supported(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
-                              instanceExtensionProperties,
+  if (!is_extension_supported(vulkan_extension, instanceExtensionProperties,
                               instanceExtensionCount)) {
     xrg_log_e("Runtime does not support required instance extension %s",
-              XR_KHR_VULKAN_ENABLE_EXTENSION_NAME);
+              vulkan_extension);
     return false;
   }
 
@@ -148,8 +147,9 @@ _enumerate_api_layers()
 }
 
 static bool
-_create_instance(xr_example* self)
+_create_instance(xr_example* self, char* vulkan_extension)
 {
+  const char* enabledExtensions[2] = { vulkan_extension };
   uint32_t num_extensions;
   switch(self->sky_type) {
   case SKY_TYPE_EQUIRECT1:
@@ -158,10 +158,7 @@ _create_instance(xr_example* self)
     break;
   default:
     num_extensions = 1;
-  };
-
-  const char** enabledExtensions = malloc(sizeof(const char*) * num_extensions);
-  enabledExtensions[0] = XR_KHR_VULKAN_ENABLE_EXTENSION_NAME;
+  }
 
   switch(self->sky_type) {
   case SKY_TYPE_EQUIRECT1:
@@ -193,7 +190,6 @@ _create_instance(xr_example* self)
 
   XrResult result;
   result = xrCreateInstance(&instanceCreateInfo, &self->instance);
-  free(enabledExtensions);
 
   if (!xr_result(result, "Failed to create XR instance."))
     return false;
@@ -324,6 +320,95 @@ _set_up_views(xr_example* self)
 }
 
 static bool
+_check_graphics_api_support2(xr_example* self)
+{
+  // XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR is aliased to
+  // XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR
+  XrGraphicsRequirementsVulkan2KHR vk_reqs = {
+    .type = XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR,
+  };
+  PFN_xrGetVulkanGraphicsRequirements2KHR GetVulkanGraphicsRequirements2 = NULL;
+  XrResult result =
+    xrGetInstanceProcAddr(self->instance, "xrGetVulkanGraphicsRequirements2KHR",
+                          (PFN_xrVoidFunction*)&GetVulkanGraphicsRequirements2);
+  if (!xr_result(result, "Failed to load xrGetVulkanGraphicsRequirements2KHR."))
+    return false;
+
+  result =
+    GetVulkanGraphicsRequirements2(self->instance, self->system_id, &vk_reqs);
+  if (!xr_result(result, "Failed to get Vulkan graphics requirements!"))
+    return false;
+
+  xrg_log_i("XrGraphicsRequirementsVulkan2KHR:");
+  xrg_log_i("minApiVersionSupported: %d", vk_reqs.minApiVersionSupported);
+  xrg_log_i("maxApiVersionSupported: %d", vk_reqs.maxApiVersionSupported);
+
+  XrVersion desired_version = XR_MAKE_VERSION(1, 0, 0);
+  if (desired_version > vk_reqs.maxApiVersionSupported ||
+      desired_version < vk_reqs.minApiVersionSupported) {
+    xrg_log_e("Runtime does not support requested Vulkan version.");
+    xrg_log_e("desired_version %lu", desired_version);
+    xrg_log_e("minApiVersionSupported %lu", vk_reqs.minApiVersionSupported);
+    xrg_log_e("maxApiVersionSupported %lu", vk_reqs.maxApiVersionSupported);
+    return false;
+  }
+
+  return true;
+}
+
+static bool
+_create_vk_instance2(xr_example* self, VkInstance* instance)
+{
+  //! @todo merge with vulkan_device_create_device()
+  VkApplicationInfo app_info = {
+    .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+    .pApplicationName = "xrgears",
+    .pEngineName = "xrgears",
+    .apiVersion = VK_MAKE_VERSION(1, 0, 2),
+  };
+
+  // runtime will add extensions it requires
+  VkInstanceCreateInfo instance_info = {
+    .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    .pApplicationInfo = &app_info,
+    .enabledExtensionCount = 0,
+    .ppEnabledExtensionNames = NULL,
+  };
+
+  XrVulkanInstanceCreateInfoKHR xr_vk_instance_info = {
+    .type = XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR,
+    .next = NULL,
+    .createFlags = 0,
+    .pfnGetInstanceProcAddr = vkGetInstanceProcAddr,
+    .systemId = self->system_id,
+    .vulkanCreateInfo = &instance_info,
+    .vulkanAllocator = NULL
+  };
+
+
+  PFN_xrCreateVulkanInstanceKHR CreateVulkanInstanceKHR = NULL;
+  XrResult result =
+    xrGetInstanceProcAddr(self->instance, "xrCreateVulkanInstanceKHR",
+                          (PFN_xrVoidFunction*)&CreateVulkanInstanceKHR);
+  if (!xr_result(result, "Failed to load xrCreateVulkanInstanceKHR."))
+    return false;
+
+  VkResult vk_result;
+  result = CreateVulkanInstanceKHR(self->instance, &xr_vk_instance_info,
+                                   instance, &vk_result);
+
+  if (!xr_result(result, "Failed to create Vulkan instance!"))
+    return false;
+
+  if (vk_result != VK_SUCCESS) {
+    xrg_log_e("Runtime failed to create Vulkan instance: %d\n", vk_result);
+    return false;
+  }
+
+  return true;
+}
+
+static bool
 _check_graphics_api_support(xr_example* self)
 {
   XrGraphicsRequirementsVulkanKHR vk_reqs = {
@@ -392,6 +477,100 @@ _init_vk_device(xr_example* self,
 
   if (!xr_result(res, "Failed to get Vulkan graphics device."))
     return false;
+
+  return true;
+}
+
+static bool
+_get_vk_device2(xr_example* self,
+                VkInstance vk_instance,
+                VkPhysicalDevice* physical_device)
+{
+  PFN_xrGetVulkanGraphicsDevice2KHR fun = NULL;
+  XrResult res = xrGetInstanceProcAddr(
+    self->instance, "xrGetVulkanGraphicsDevice2KHR", (PFN_xrVoidFunction*)&fun);
+
+  if (!xr_result(res, "Failed to load xrGetVulkanGraphicsDevice2KHR."))
+    return false;
+
+  XrVulkanGraphicsDeviceGetInfoKHR info = {
+    .type = XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR,
+    .next = NULL,
+    .systemId = self->system_id,
+    .vulkanInstance = vk_instance
+  };
+
+  res = fun(self->instance, &info, physical_device);
+
+  if (!xr_result(res, "Failed to get Vulkan graphics device."))
+    return false;
+
+  return true;
+}
+
+static bool
+_create_vk_device2(xr_example* self,
+                   VkPhysicalDevice physical_device,
+                   vulkan_device** device)
+{
+
+  *device = vulkan_device_create(physical_device);
+
+  vulkan_device* d = *device;
+
+  PFN_xrCreateVulkanDeviceKHR fun = NULL;
+  XrResult res = xrGetInstanceProcAddr(
+    self->instance, "xrCreateVulkanDeviceKHR", (PFN_xrVoidFunction*)&fun);
+
+  if (!xr_result(res, "Failed to load xrCreateVulkanDeviceKHR."))
+    return false;
+
+
+  //! @todo merge with vulkan_device_create_device()
+  VkDeviceQueueCreateInfo queue_info = {
+    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+    .queueFamilyIndex = d->graphics_family_index,
+    .queueCount = 1,
+    .pQueuePriorities = (float[]){ 0.0f },
+  };
+
+  VkPhysicalDeviceFeatures enabled_features = {
+    .samplerAnisotropy = VK_TRUE,
+  };
+
+  // runtime will add extensions it requires
+  VkDeviceCreateInfo device_info = {
+    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+    .queueCreateInfoCount = 1,
+    .pQueueCreateInfos = &queue_info,
+    .pEnabledFeatures = &enabled_features,
+    .enabledExtensionCount = 0,
+    .ppEnabledExtensionNames = NULL,
+  };
+
+
+  XrVulkanDeviceCreateInfoKHR info = {
+    .type = XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR,
+    .next = NULL,
+    .systemId = self->system_id,
+    .createFlags = 0,
+    .pfnGetInstanceProcAddr = vkGetInstanceProcAddr,
+    .vulkanPhysicalDevice = d->physical_device,
+    .vulkanCreateInfo = &device_info,
+    .vulkanAllocator = NULL,
+  };
+
+
+  VkResult vk_result;
+  res = fun(self->instance, &info, &d->device, &vk_result);
+
+  if (!xr_result(res, "Failed to create Vulkan graphics device."))
+    return false;
+
+  if (vk_result != VK_SUCCESS) {
+    xrg_log_e("Runtime failed to create Vulkan device: %d\n", vk_result);
+    return false;
+  }
 
   return true;
 }
@@ -813,6 +992,45 @@ _init_proj(xr_example* self, XrCompositionLayerFlags flags, xr_proj* proj)
   return true;
 }
 
+static bool
+_init_vulkan_enable(xr_example* self,
+                    VkInstance instance,
+                    VkPhysicalDevice* physical_device)
+{
+  if (!_check_graphics_api_support(self))
+    return false;
+
+  if (!_get_vk_instance_extensions(self))
+    return false;
+
+  if (!_init_vk_device(self, instance, physical_device))
+    return false;
+
+  return true;
+}
+
+static bool
+_init_vulkan_enable2(xr_example* self,
+                     VkInstance* instance,
+                     vulkan_device** vulkan_device)
+{
+  if (!_check_graphics_api_support2(self))
+    return false;
+
+  if (!_create_vk_instance2(self, instance))
+    return false;
+
+  VkPhysicalDevice physical_device;
+
+  if (!_get_vk_device2(self, *instance, &physical_device))
+    return false;
+
+  if (!_create_vk_device2(self, physical_device, vulkan_device))
+    return false;
+
+  return true;
+}
+
 bool
 xr_init(xr_example* self,
         VkInstance instance,
@@ -821,13 +1039,15 @@ xr_init(xr_example* self,
   self->is_visible = true;
   self->is_runnting = true;
 
-  if (!_check_xr_extensions(self))
+  char* vulkan_extension = XR_KHR_VULKAN_ENABLE_EXTENSION_NAME;
+
+  if (!_check_vk_extensions(self, vulkan_extension))
     return false;
 
   if (!_enumerate_api_layers())
     return false;
 
-  if (!_create_instance(self))
+  if (!_create_instance(self, vulkan_extension))
     return false;
 
   if (!_create_system(self))
@@ -836,13 +1056,38 @@ xr_init(xr_example* self,
   if (!_set_up_views(self))
     return false;
 
-  if (!_check_graphics_api_support(self))
+  if (!_init_vulkan_enable(self, instance, physical_device))
     return false;
 
-  if (!_get_vk_instance_extensions(self))
+  _init_layers(self);
+
+  return true;
+}
+
+bool
+xr_init2(xr_example* self, VkInstance* instance, vulkan_device** vulkan_device)
+{
+  self->is_visible = true;
+  self->is_runnting = true;
+
+  char* vulkan_extension = XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME;
+
+  if (!_check_vk_extensions(self, vulkan_extension))
     return false;
 
-  if (!_init_vk_device(self, instance, physical_device))
+  if (!_enumerate_api_layers())
+    return false;
+
+  if (!_create_instance(self, vulkan_extension))
+    return false;
+
+  if (!_create_system(self))
+    return false;
+
+  if (!_set_up_views(self))
+    return false;
+
+  if (!_init_vulkan_enable2(self, instance, vulkan_device))
     return false;
 
   _init_layers(self);

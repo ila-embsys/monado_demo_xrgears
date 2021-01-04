@@ -45,8 +45,6 @@ public:
   vulkan_framebuffer **sky_buffers[2];
   VkCommandBuffer *sky_draw_cmd;
 
-  VkDevice device = VK_NULL_HANDLE;
-  VkPhysicalDevice physical_device = VK_NULL_HANDLE;
   VkCommandPool cmd_pool;
   VkQueue queue;
   VkPhysicalDeviceFeatures device_features;
@@ -94,9 +92,9 @@ public:
 
     xr_cleanup(&xr);
 
-    vkDestroyPipelineCache(device, pipeline_cache, nullptr);
+    vkDestroyPipelineCache(vk_device->device, pipeline_cache, nullptr);
 
-    vkDestroyCommandPool(device, cmd_pool, nullptr);
+    vkDestroyCommandPool(vk_device->device, cmd_pool, nullptr);
 
     vulkan_device_destroy(vk_device);
     vulkan_context_destroy(&context);
@@ -109,7 +107,7 @@ public:
   {
     while (!quit)
       render();
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(vk_device->device);
   }
 
   void
@@ -374,19 +372,48 @@ public:
   bool
   init()
   {
-    init_vulkan();
 
-    if (!xr_init(&xr, context.instance, &physical_device)) {
-      xrg_log_e("OpenXR graphics initialization failed.");
-      return false;
+    /*
+     * vulkan_enable2 lets the runtime create a VkInstance and VkDevice, so we
+     * let xr_init2 create context.instance and this->vk_device.
+     *
+     * Legacy vulkan_enable requires us to create a VkInstance, gives us a
+     * VkPhysicalDevice and expects us to create a VkDevice.
+     */
+    if (settings.vulkan_enable2) {
+
+      if (!xr_init2(&xr, &context.instance, &vk_device)) {
+        xrg_log_e("OpenXR graphics initialization failed.");
+        return false;
+      }
+
+      get_vulkan_device_queue();
+
+    } else {
+
+      init_vulkan_instance();
+
+      VkPhysicalDevice physical_device;
+      if (!xr_init(&xr, context.instance, &physical_device)) {
+        xrg_log_e("OpenXR graphics initialization failed.");
+        return false;
+      }
+
+      // instantiate vulkan_device object
+      vk_device = vulkan_device_create(physical_device);
+
+      // create VkDevice
+      create_vulkan_device();
+
+      get_vulkan_device_queue();
     }
 
-    init_vulkan_device();
     create_pipeline_cache();
     create_command_pool(0);
 
-    if (!xr_init_post_vk(&xr, context.instance, physical_device, device,
-                         vk_device->graphics_family_index, 0)) {
+    if (!xr_init_post_vk(&xr, context.instance, vk_device->physical_device,
+                         vk_device->device, vk_device->graphics_family_index,
+                         0)) {
       xrg_log_e("OpenXR initialization failed.");
       return false;
     }
@@ -400,7 +427,7 @@ public:
       gears_buffers[i] = (vulkan_framebuffer **)malloc(
         sizeof(vulkan_framebuffer *) * xr.gears.swapchain_length[i]);
       for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++) {
-        gears_buffers[i][j] = vulkan_framebuffer_create(device);
+        gears_buffers[i][j] = vulkan_framebuffer_create(vk_device->device);
         vulkan_framebuffer_init(
           gears_buffers[i][j], vk_device, xr.gears.images[i][j].image,
           (VkFormat)xr.swapchain_format,
@@ -416,7 +443,7 @@ public:
         sky_buffers[i] = (vulkan_framebuffer **)malloc(
           sizeof(vulkan_framebuffer *) * xr.sky.swapchain_length[i]);
         for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++) {
-          sky_buffers[i][j] = vulkan_framebuffer_create(device);
+          sky_buffers[i][j] = vulkan_framebuffer_create(vk_device->device);
           vulkan_framebuffer_init(
             sky_buffers[i][j], vk_device, xr.sky.images[i][j].image,
             (VkFormat)xr.swapchain_format,
@@ -469,7 +496,7 @@ public:
     };
 
     VkCommandBuffer cmd_buffer;
-    vk_check(vkAllocateCommandBuffers(device, &info, &cmd_buffer));
+    vk_check(vkAllocateCommandBuffers(vk_device->device, &info, &cmd_buffer));
 
     return cmd_buffer;
   }
@@ -480,11 +507,12 @@ public:
     VkPipelineCacheCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
     };
-    vk_check(vkCreatePipelineCache(device, &info, nullptr, &pipeline_cache));
+    vk_check(vkCreatePipelineCache(vk_device->device, &info, nullptr,
+                                   &pipeline_cache));
   }
 
   void
-  init_vulkan()
+  init_vulkan_instance()
   {
     VkResult err = vulkan_context_create_instance(&context);
     xrg_log_f_if(err, "Could not create Vulkan instance: %s",
@@ -492,18 +520,19 @@ public:
   }
 
   void
-  init_vulkan_device()
+  create_vulkan_device()
   {
-    vk_device = vulkan_device_create(physical_device);
-
     VkResult res = vulkan_device_create_device(vk_device);
     xrg_log_f_if(res != VK_SUCCESS, "Could not create Vulkan device: %s",
                  vk_result_to_string(res));
+  }
 
-    device = vk_device->device;
-
+  void
+  get_vulkan_device_queue()
+  {
     // Get a graphics queue from the device
-    vkGetDeviceQueue(device, vk_device->graphics_family_index, 0, &queue);
+    vkGetDeviceQueue(vk_device->device, vk_device->graphics_family_index, 0,
+                     &queue);
   }
 
   void
@@ -515,7 +544,8 @@ public:
       .queueFamilyIndex = index
     };
 
-    vk_check(vkCreateCommandPool(device, &cmd_pool_info, nullptr, &cmd_pool));
+    vk_check(vkCreateCommandPool(vk_device->device, &cmd_pool_info, nullptr,
+                                 &cmd_pool));
   }
 
   void
@@ -538,7 +568,7 @@ public:
   void
   render()
   {
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(vk_device->device);
     draw();
     update_timer();
   }

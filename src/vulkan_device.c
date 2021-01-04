@@ -10,6 +10,20 @@
 
 #include "vulkan_device.h"
 
+static bool
+_get_graphics_queue_index(vulkan_device *self)
+{
+  for (uint32_t i = 0; i < self->queue_family_count; i++) {
+    if (self->queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+      self->graphics_family_index = i;
+      return true;
+    }
+  }
+
+  self->graphics_family_index = 0;
+  return false;
+}
+
 vulkan_device *
 vulkan_device_create(VkPhysicalDevice physical_device)
 {
@@ -30,6 +44,11 @@ vulkan_device_create(VkPhysicalDevice physical_device)
     malloc(sizeof(VkQueueFamilyProperties) * self->queue_family_count);
   vkGetPhysicalDeviceQueueFamilyProperties(
     physical_device, &self->queue_family_count, self->queue_family_properties);
+
+  if (!_get_graphics_queue_index(self))
+    xrg_log_e("Could not find graphics queue.");
+
+  self->cmd_pool = NULL;
 
   return self;
 }
@@ -65,20 +84,6 @@ vulkan_device_get_memory_type(vulkan_device *self,
   return false;
 }
 
-static bool
-_get_graphics_queue_index(vulkan_device *self)
-{
-  for (uint32_t i = 0; i < self->queue_family_count; i++) {
-    if (self->queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-      self->graphics_family_index = i;
-      return true;
-    }
-  }
-
-  self->graphics_family_index = 0;
-  return false;
-}
-
 static VkCommandPool
 _create_cmd_pool(vulkan_device *self)
 {
@@ -101,9 +106,6 @@ _create_cmd_pool(vulkan_device *self)
 VkResult
 vulkan_device_create_device(vulkan_device *self)
 {
-  if (!_get_graphics_queue_index(self))
-    xrg_log_e("Could not find graphics queue.");
-
   VkDeviceQueueCreateInfo queue_info = {
     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
     .queueFamilyIndex = self->graphics_family_index,
@@ -130,7 +132,6 @@ vulkan_device_create_device(vulkan_device *self)
     .pEnabledFeatures = &enabled_features,
     .enabledExtensionCount = ARRAY_SIZE(enabled_extensions),
     .ppEnabledExtensionNames = (const char *const *)enabled_extensions,
-
   };
 
   VkResult result =
@@ -140,8 +141,6 @@ vulkan_device_create_device(vulkan_device *self)
     xrg_log_e("Could not create device.");
     return result;
   }
-
-  self->cmd_pool = _create_cmd_pool(self);
 
   return result;
 }
@@ -219,6 +218,10 @@ vulkan_device_create_buffer(vulkan_device *self,
 VkCommandBuffer
 vulkan_device_create_cmd_buffer(vulkan_device *self)
 {
+  if (!self->cmd_pool) {
+    self->cmd_pool = _create_cmd_pool(self);
+  };
+
   VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
     .commandPool = self->cmd_pool,
@@ -245,6 +248,10 @@ vulkan_device_flush_cmd_buffer(vulkan_device *self,
 {
   if (commandBuffer == VK_NULL_HANDLE)
     return;
+
+  if (!self->cmd_pool) {
+    return;
+  }
 
   vk_check(vkEndCommandBuffer(commandBuffer));
 
