@@ -525,24 +525,22 @@ _create_swapchains(xr_example* self, xr_proj* proj)
 
     result = xrEnumerateSwapchainImages(proj->swapchains[i], 0,
                                         &proj->swapchain_length[i], NULL);
-    if (!xr_result(result, "Failed to enumerate swapchains"))
+    if (!xr_result(result, "Failed to enumerate swapchain lengths"))
       return false;
-  }
-
-  // most likely all swapchains have the same length, but let's not fail
-  // if they are not
-  uint32_t maxSwapchainLength = 0;
-  for (uint32_t i = 0; i < self->view_count; i++) {
-    if (proj->swapchain_length[i] > maxSwapchainLength) {
-      maxSwapchainLength = proj->swapchain_length[i];
-    }
   }
 
   proj->images = (XrSwapchainImageVulkanKHR**)malloc(
     sizeof(XrSwapchainImageVulkanKHR*) * self->view_count);
   for (uint32_t i = 0; i < self->view_count; i++) {
     proj->images[i] = (XrSwapchainImageVulkanKHR*)malloc(
-      sizeof(XrSwapchainImageVulkanKHR) * maxSwapchainLength);
+      sizeof(XrSwapchainImageVulkanKHR) * proj->swapchain_length[i]);
+
+    for (uint32_t j = 0; j < proj->swapchain_length[i]; j++) {
+      // XR_TYPE_SWAPCHAIN_IMAGE_VULKAN2_KHR aliased to
+      // XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR
+      proj->images[i][j].type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
+      proj->images[i][j].next = NULL;
+    }
   }
 
   for (uint32_t i = 0; i < self->view_count; i++) {
