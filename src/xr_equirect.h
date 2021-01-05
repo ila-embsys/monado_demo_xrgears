@@ -24,6 +24,7 @@ extern "C" {
 typedef struct xr_equirect
 {
   XrCompositionLayerEquirect2KHR layer_v2;
+  XrCompositionLayerEquirectKHR layer_v1;
   XrSwapchain swapchain;
   uint32_t swapchain_length;
   XrSwapchainImageVulkanKHR* images;
@@ -31,6 +32,13 @@ typedef struct xr_equirect
 
 void
 xr_equirect_init_v2(xr_equirect* self,
+                    XrSession session,
+                    XrSpace space,
+                    XrExtent2Di extent,
+                    XrPosef pose);
+
+void
+xr_equirect_init_v1(xr_equirect* self,
                     XrSession session,
                     XrSpace space,
                     XrExtent2Di extent,

@@ -147,3 +147,35 @@ xr_equirect_init_v2(xr_equirect* self,
   // self->layer.upperVerticalAngle /= 2.0f;
   // self->layer.lowerVerticalAngle /= 2.0f;
 }
+
+
+void
+xr_equirect_init_v1(xr_equirect* self,
+                    XrSession session,
+                    XrSpace space,
+                    XrExtent2Di extent,
+                    XrPosef pose)
+{
+  bool res = _create_equirect_swapchain(self, session, &extent);
+  xrg_log_i("Initialized equirect swapchain: %d", res);
+
+  self->layer_v1 = (XrCompositionLayerEquirectKHR){
+    .type = XR_TYPE_COMPOSITION_LAYER_EQUIRECT_KHR,
+    .layerFlags = XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT,
+    .space = space,
+    .eyeVisibility = XR_EYE_VISIBILITY_BOTH,
+    .subImage = {
+      .swapchain = self->swapchain,
+      .imageRect = {
+        .offset = { .x = 0, .y = 0 },
+        .extent = extent,
+      },
+      .imageArrayIndex = 0,
+    },
+    .pose = pose,
+    .radius = 1.0f,
+
+    .scale = { .x = 1, .y = 1 },
+    .bias = { .x = 0, .y = 0 }
+  };
+}
