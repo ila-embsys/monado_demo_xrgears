@@ -51,8 +51,13 @@ void
 pipeline_equirect::init_texture(vulkan_device *vk_device, VkQueue queue)
 {
   size_t station_size;
+#ifdef XR_OS_ANDROID
+  const char *station_bytes = android_get_asset(
+    &global_android_context, "dresden_station_night_4k.ktx", &station_size);
+#else
   const char *station_bytes =
     gio_get_asset("/textures/dresden_station_night_4k.ktx", &station_size);
+#endif
 
   vulkan_texture_load_ktx(&texture, (const ktx_uint8_t *) station_bytes,
                           station_size, vk_device, queue,
