@@ -42,6 +42,13 @@ typedef struct xr_proj
   XrSwapchainImageVulkanKHR** images;
 } xr_proj;
 
+typedef enum {
+  SKY_TYPE_OFF,
+  SKY_TYPE_PROJECTION,
+  SKY_TYPE_EQUIRECT1,
+  SKY_TYPE_EQUIRECT2
+} xr_sky_layer_type;
+
 typedef struct xr_example
 {
   XrInstance instance;
@@ -75,8 +82,9 @@ typedef struct xr_example
   xr_quad quad2;
 #endif
 
-  xr_equirect equirect;
+  xr_sky_layer_type sky_type;
 
+  xr_equirect equirect;
 } xr_example;
 
 bool

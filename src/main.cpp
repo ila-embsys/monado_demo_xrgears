@@ -344,7 +344,18 @@ public:
       .orientation = { .x = 0, .y = 0, .z = 0, .w = 1 },
       .position = { .x = -2, .y = 1, .z = -3 },
     };
-    xr_equirect_init_v2(&xr.equirect, xr.session, xr.local_space, extent, pose);
+
+    switch(xr.sky_type) {
+    case SKY_TYPE_EQUIRECT1:
+      xr_equirect_init_v1(&xr.equirect, xr.session, xr.local_space, extent, pose);
+      break;
+    case SKY_TYPE_EQUIRECT2:
+      xr_equirect_init_v2(&xr.equirect, xr.session, xr.local_space, extent, pose);
+      break;
+    default:
+      xrg_log_e("Equirect support not enabled");
+      return;
+    };
 
     size_t station_size;
     const char *station_bytes =

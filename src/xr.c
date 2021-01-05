@@ -69,7 +69,7 @@ is_extension_supported(const char* name,
 }
 
 static bool
-_check_vk_extension()
+_check_xr_extensions(xr_example* self)
 {
   XrResult result;
   uint32_t instanceExtensionCount = 0;
@@ -95,20 +95,27 @@ _check_vk_extension()
   if (!is_extension_supported(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
                               instanceExtensionProperties,
                               instanceExtensionCount)) {
-    printf("Runtime does not support required instance extension %s\n",
-           XR_KHR_VULKAN_ENABLE_EXTENSION_NAME);
+    xrg_log_e("Runtime does not support required instance extension %s",
+              XR_KHR_VULKAN_ENABLE_EXTENSION_NAME);
     return false;
   }
 
-  result =
-    is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME,
-                           instanceExtensionProperties, instanceExtensionCount);
-  if (!xr_result(result,
-                 "Runtime does not support required instance extension %s\n",
-                 XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME))
-    return false;
+  if (is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
+                           instanceExtensionProperties, instanceExtensionCount)) {
+    self->sky_type = SKY_TYPE_EQUIRECT2;
+    xrg_log_i("Will use equirect2 layer for sky rendering.");
+    return true;
+  }
 
+  if (is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME,
+                           instanceExtensionProperties, instanceExtensionCount)) {
+    self->sky_type = SKY_TYPE_EQUIRECT1;
+    xrg_log_i("Will use equirect1 layer for sky rendering.");
+    return true;
+  }
 
+  self->sky_type = SKY_TYPE_PROJECTION;
+  xrg_log_i("Will use projection layer for sky rendering.");
   return true;
 }
 
@@ -143,10 +150,30 @@ _enumerate_api_layers()
 static bool
 _create_instance(xr_example* self)
 {
-  const char* const enabledExtensions[] = {
-    XR_KHR_VULKAN_ENABLE_EXTENSION_NAME,
-    XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME
+  uint32_t num_extensions;
+  switch(self->sky_type) {
+  case SKY_TYPE_EQUIRECT1:
+  case SKY_TYPE_EQUIRECT2:
+    num_extensions = 2;
+    break;
+  default:
+    num_extensions = 1;
   };
+
+  const char** enabledExtensions = malloc(sizeof(const char*) * num_extensions);
+  enabledExtensions[0] = XR_KHR_VULKAN_ENABLE_EXTENSION_NAME;
+
+  switch(self->sky_type) {
+  case SKY_TYPE_EQUIRECT1:
+    enabledExtensions[1] = XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME;
+    break;
+  case SKY_TYPE_EQUIRECT2:
+    enabledExtensions[1] = XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME;
+    break;
+  default:
+    break;
+  };
+
   XrInstanceCreateInfo instanceCreateInfo = {
     .type = XR_TYPE_INSTANCE_CREATE_INFO,
     .createFlags = 0,
@@ -160,12 +187,14 @@ _create_instance(xr_example* self)
       },
     .enabledApiLayerCount = 0,
     .enabledApiLayerNames = NULL,
-    .enabledExtensionCount = ARRAY_SIZE(enabledExtensions),
+    .enabledExtensionCount = num_extensions,
     .enabledExtensionNames = enabledExtensions,
   };
 
   XrResult result;
   result = xrCreateInstance(&instanceCreateInfo, &self->instance);
+  free(enabledExtensions);
+
   if (!xr_result(result, "Failed to create XR instance."))
     return false;
 
@@ -759,7 +788,7 @@ xr_init(xr_example* self,
   self->is_visible = true;
   self->is_runnting = true;
 
-  if (!_check_vk_extension())
+  if (!_check_xr_extensions(self))
     return false;
 
   if (!_enumerate_api_layers())
