@@ -705,30 +705,63 @@ xr_release_swapchain(XrSwapchain swapchain)
   return true;
 }
 
+static void
+_init_layers(xr_example* self) {
+  self->num_layers = 0;
+
+  switch(self->sky_type) {
+  case SKY_TYPE_OFF:
+    break;
+  default:
+    self->num_layers += 1;
+  }
+
+#if ENABLE_GEARS_LAYER
+  self->num_layers += 1;
+#endif
+
+#if ENABLE_QUAD_LAYERS
+  self->num_layers += 2;
+#endif
+
+  self->layers = malloc(sizeof(const XrCompositionLayerBaseHeader*) * self->num_layers);
+
+  uint32_t li = 0;
+
+  switch(self->sky_type) {
+  case SKY_TYPE_PROJECTION:
+    self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->sky.layer;
+    break;
+  case SKY_TYPE_EQUIRECT1:
+    self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->equirect.layer_v1;
+    break;
+  case SKY_TYPE_EQUIRECT2:
+    self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->equirect.layer_v2;
+    break;
+  default:
+    break;
+  }
+
+#if ENABLE_GEARS_LAYER
+  self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->gears.layer;
+#endif
+
+#if ENABLE_QUAD_LAYERS
+  self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->quad.layer;
+  self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->quad2.layer;
+#endif
+}
+
 bool
 xr_end_frame(xr_example* self)
 {
   XrResult result;
-
-  const XrCompositionLayerBaseHeader* const layers[] = {
-#if ENABLE_SKY_LAYER
-    (const XrCompositionLayerBaseHeader* const) & self->sky.layer,
-#endif
-    (const XrCompositionLayerBaseHeader* const) & self->equirect.layer_v2,
-#if ENABLE_GEARS_LAYER
-    (const XrCompositionLayerBaseHeader* const) & self->gears.layer,
-#endif
-#if ENABLE_QUAD_LAYERS
-    (const XrCompositionLayerBaseHeader* const) & self->quad.layer,
-    (const XrCompositionLayerBaseHeader* const) & self->quad2.layer,
-#endif
-  };
   XrFrameEndInfo frameEndInfo = {
     .type = XR_TYPE_FRAME_END_INFO,
     .displayTime = self->frameState.predictedDisplayTime,
     .environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE,
-    .layerCount = ARRAY_SIZE(layers),
-    .layers = layers,
+    .layerCount = self->num_layers,
+    .layers = self->layers,
   };
 
   result = xrEndFrame(self->session, &frameEndInfo);
@@ -762,6 +795,8 @@ xr_cleanup(xr_example* self)
   xrDestroySpace(self->local_space);
   xrDestroySession(self->session);
   xrDestroyInstance(self->instance);
+
+  free(self->layers);
 }
 
 static bool
@@ -811,6 +846,8 @@ xr_init(xr_example* self,
 
   if (!_init_vk_device(self, instance, physical_device))
     return false;
+
+  _init_layers(self);
 
   return true;
 }

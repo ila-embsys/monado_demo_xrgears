@@ -19,7 +19,7 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
-#define ENABLE_SKY_LAYER 0
+#define ENABLE_SKY_LAYER 1
 #define ENABLE_GEARS_LAYER 1
 #define ENABLE_QUAD_LAYERS 1
 
@@ -85,6 +85,10 @@ typedef struct xr_example
   xr_sky_layer_type sky_type;
 
   xr_equirect equirect;
+
+  const XrCompositionLayerBaseHeader** layers;
+  uint32_t num_layers;
+
 } xr_example;
 
 bool
