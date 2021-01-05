@@ -41,11 +41,9 @@ public:
   VkCommandBuffer *gears_draw_cmd;
 #endif
 
-#if ENABLE_SKY_LAYER
   vulkan_pipeline *equirect;
   vulkan_framebuffer **sky_buffers[2];
   VkCommandBuffer *sky_draw_cmd;
-#endif
 
   VkDevice device = VK_NULL_HANDLE;
   VkPhysicalDevice physical_device = VK_NULL_HANDLE;
@@ -81,18 +79,18 @@ public:
     delete gears;
 #endif
 
-#if ENABLE_SKY_LAYER
-    for (uint32_t i = 0; i < 2; i++) {
-      for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++)
-        if (sky_buffers[i][j]) {
-          vulkan_framebuffer_destroy(sky_buffers[i][j]);
-          delete sky_buffers[i][j];
-        }
-      free(sky_buffers[i]);
+    if (xr.sky_type == SKY_TYPE_PROJECTION) {
+      for (uint32_t i = 0; i < 2; i++) {
+        for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++)
+          if (sky_buffers[i][j]) {
+            vulkan_framebuffer_destroy(sky_buffers[i][j]);
+            delete sky_buffers[i][j];
+          }
+        free(sky_buffers[i]);
+      }
+      free(sky_draw_cmd);
+      delete equirect;
     }
-    free(sky_draw_cmd);
-    delete equirect;
-#endif
 
     xr_cleanup(&xr);
 
@@ -205,12 +203,12 @@ public:
       }
 #endif
 
-#if ENABLE_SKY_LAYER
-      if (!xr_aquire_swapchain(&xr, &xr.sky, i, &buffer_index[i])) {
-        xrg_log_e("Could not aquire xr swapchain");
-        return;
+      if (xr.sky_type == SKY_TYPE_PROJECTION) {
+        if (!xr_aquire_swapchain(&xr, &xr.sky, i, &buffer_index[i])) {
+          xrg_log_e("Could not aquire xr swapchain");
+          return;
+        }
       }
-#endif
 
       glm::mat4 projection =
         _create_projection_from_fov(xr.views[i].fov, 0.05f, 100.0f);
@@ -225,9 +223,8 @@ public:
       ((pipeline_gears *)gears)->update_vp(projection, view, position, i);
 #endif
 
-#if ENABLE_SKY_LAYER
-      ((pipeline_equirect *)equirect)->update_vp(projection, view, i);
-#endif
+      if (xr.sky_type == SKY_TYPE_PROJECTION)
+        ((pipeline_equirect *)equirect)->update_vp(projection, view, i);
     }
 
 #if ENABLE_GEARS_LAYER
@@ -251,10 +248,10 @@ public:
     vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
 #endif
 
-#if ENABLE_SKY_LAYER
-    submit_info.pCommandBuffers = &sky_draw_cmd[buffer_index[0]];
-    vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
-#endif
+    if (xr.sky_type == SKY_TYPE_PROJECTION) {
+      submit_info.pCommandBuffers = &sky_draw_cmd[buffer_index[0]];
+      vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
+    }
 
     for (uint32_t i = 0; i < 2; i++) {
 #if ENABLE_GEARS_LAYER
@@ -264,12 +261,12 @@ public:
       }
 #endif
 
-#if ENABLE_SKY_LAYER
-      if (!xr_release_swapchain(xr.sky.swapchains[i])) {
-        xrg_log_e("Could not release xr swapchain");
-        return;
+      if (xr.sky_type == SKY_TYPE_PROJECTION) {
+        if (!xr_release_swapchain(xr.sky.swapchains[i])) {
+          xrg_log_e("Could not release xr swapchain");
+          return;
+        }
       }
-#endif
     }
 
     if (!xr_end_frame(&xr)) {
@@ -412,21 +409,21 @@ public:
       }
 #endif
 
-#if ENABLE_SKY_LAYER
-      sky_draw_cmd = (VkCommandBuffer *)malloc(sizeof(VkCommandBuffer) *
-                                               xr.sky.swapchain_length[i]);
+      if (xr.sky_type == SKY_TYPE_PROJECTION) {
+        sky_draw_cmd = (VkCommandBuffer *)malloc(sizeof(VkCommandBuffer) *
+                                                 xr.sky.swapchain_length[i]);
 
-      sky_buffers[i] = (vulkan_framebuffer **)malloc(
-        sizeof(vulkan_framebuffer *) * xr.sky.swapchain_length[i]);
-      for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++) {
-        sky_buffers[i][j] = vulkan_framebuffer_create(device);
-        vulkan_framebuffer_init(
-          sky_buffers[i][j], vk_device, xr.sky.images[i][j].image,
-          (VkFormat)xr.swapchain_format,
-          xr.configuration_views[i].recommendedImageRectWidth,
-          xr.configuration_views[i].recommendedImageRectHeight);
+        sky_buffers[i] = (vulkan_framebuffer **)malloc(
+          sizeof(vulkan_framebuffer *) * xr.sky.swapchain_length[i]);
+        for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++) {
+          sky_buffers[i][j] = vulkan_framebuffer_create(device);
+          vulkan_framebuffer_init(
+            sky_buffers[i][j], vk_device, xr.sky.images[i][j].image,
+            (VkFormat)xr.swapchain_format,
+            xr.configuration_views[i].recommendedImageRectWidth,
+            xr.configuration_views[i].recommendedImageRectHeight);
+        }
       }
-#endif
     }
 
 #if ENABLE_GEARS_LAYER
@@ -437,19 +434,20 @@ public:
                            gears);
 #endif
 
-#if ENABLE_SKY_LAYER
-    equirect = new pipeline_equirect(
-      vk_device, queue, sky_buffers[0][0]->render_pass, pipeline_cache);
-    for (uint32_t i = 0; i < xr.sky.swapchain_length[0]; i++)
-      build_command_buffer(&sky_draw_cmd[i], sky_buffers, xr.view_count, i,
-                           equirect);
-#endif
+    if (xr.sky_type == SKY_TYPE_PROJECTION) {
+      equirect = new pipeline_equirect(
+        vk_device, queue, sky_buffers[0][0]->render_pass, pipeline_cache);
+      for (uint32_t i = 0; i < xr.sky.swapchain_length[0]; i++)
+        build_command_buffer(&sky_draw_cmd[i], sky_buffers, xr.view_count, i,
+                             equirect);
+    }
 
 #if ENABLE_QUAD_LAYERS
     init_quads();
 #endif
 
-    init_equirect();
+    if (xr.sky_type == SKY_TYPE_EQUIRECT1 || xr.sky_type == SKY_TYPE_EQUIRECT2)
+      init_equirect();
 
     return true;
   }

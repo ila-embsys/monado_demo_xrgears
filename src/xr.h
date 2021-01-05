@@ -19,7 +19,6 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
-#define ENABLE_SKY_LAYER 1
 #define ENABLE_GEARS_LAYER 1
 #define ENABLE_QUAD_LAYERS 1
 
@@ -63,9 +62,8 @@ typedef struct xr_example
 #if ENABLE_GEARS_LAYER
   xr_proj gears;
 #endif
-#if ENABLE_SKY_LAYER
+
   xr_proj sky;
-#endif
 
   uint32_t view_count;
 

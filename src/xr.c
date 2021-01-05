@@ -788,9 +788,9 @@ xr_cleanup(xr_example* self)
 #if ENABLE_GEARS_LAYER
   _cleanup_proj(self, &self->gears);
 #endif
-#if ENABLE_SKY_LAYER
-  _cleanup_proj(self, &self->sky);
-#endif
+
+  if (self->sky_type == SKY_TYPE_PROJECTION)
+    _cleanup_proj(self, &self->sky);
 
   xrDestroySpace(self->local_space);
   xrDestroySession(self->session);
@@ -883,9 +883,8 @@ xr_init_post_vk(xr_example* self,
              &self->gears);
 #endif
 
-#if ENABLE_SKY_LAYER
-  _init_proj(self, XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT, &self->sky);
-#endif
+  if (self->sky_type == SKY_TYPE_PROJECTION)
+    _init_proj(self, XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT, &self->sky);
 
   return true;
 }
