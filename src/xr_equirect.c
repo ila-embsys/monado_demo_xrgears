@@ -59,6 +59,10 @@ _create_equirect_swapchain(xr_equirect* self,
 
   self->images =
     malloc(sizeof(XrSwapchainImageVulkanKHR) * self->swapchain_length);
+  for (uint32_t i = 0; i < self->swapchain_length; i++) {
+    self->images[i].type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
+    self->images[i].next = NULL;
+  }
 
   result = xrEnumerateSwapchainImages(
     self->swapchain, self->swapchain_length, &self->swapchain_length,
