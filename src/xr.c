@@ -1031,15 +1031,11 @@ _init_vulkan_enable2(xr_example* self,
   return true;
 }
 
-bool
-xr_init(xr_example* self,
-        VkInstance instance,
-        VkPhysicalDevice* physical_device)
+static bool
+xr_init_pre_vk(xr_example* self, char* vulkan_extension)
 {
   self->is_visible = true;
   self->is_runnting = true;
-
-  char* vulkan_extension = XR_KHR_VULKAN_ENABLE_EXTENSION_NAME;
 
   if (!_check_vk_extensions(self, vulkan_extension))
     return false;
@@ -1056,10 +1052,19 @@ xr_init(xr_example* self,
   if (!_set_up_views(self))
     return false;
 
-  if (!_init_vulkan_enable(self, instance, physical_device))
+  return true;
+}
+
+bool
+xr_init(xr_example* self,
+        VkInstance instance,
+        VkPhysicalDevice* physical_device)
+{
+  if (!xr_init_pre_vk(self, XR_KHR_VULKAN_ENABLE_EXTENSION_NAME))
     return false;
 
-  _init_layers(self);
+  if (!_init_vulkan_enable(self, instance, physical_device))
+    return false;
 
   return true;
 }
@@ -1067,30 +1072,11 @@ xr_init(xr_example* self,
 bool
 xr_init2(xr_example* self, VkInstance* instance, vulkan_device** vulkan_device)
 {
-  self->is_visible = true;
-  self->is_runnting = true;
-
-  char* vulkan_extension = XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME;
-
-  if (!_check_vk_extensions(self, vulkan_extension))
-    return false;
-
-  if (!_enumerate_api_layers())
-    return false;
-
-  if (!_create_instance(self, vulkan_extension))
-    return false;
-
-  if (!_create_system(self))
-    return false;
-
-  if (!_set_up_views(self))
+  if (!xr_init_pre_vk(self, XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME))
     return false;
 
   if (!_init_vulkan_enable2(self, instance, vulkan_device))
     return false;
-
-  _init_layers(self);
 
   return true;
 }
@@ -1103,6 +1089,8 @@ xr_init_post_vk(xr_example* self,
                 uint32_t queue_family_index,
                 uint32_t queue_index)
 {
+  _init_layers(self);
+
   self->graphics_binding = (XrGraphicsBindingVulkanKHR){
     .type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR,
     .instance = instance,
