@@ -68,49 +68,61 @@ is_extension_supported(const char* name,
   return false;
 }
 
+static void
+print_supported_extensions(XrExtensionProperties* props,
+                           uint32_t count)
+{
+  xrg_log_d("== Supported OpenXR extensions ==");
+  for (uint32_t i = 0; i < count; i++)
+    xrg_log_d("%s", props[i].extensionName);
+}
+
 static bool
-_check_vk_extensions(xr_example* self, const char* vulkan_extension)
+_check_xr_extensions(xr_example* self, const char* vulkan_extension)
 {
   XrResult result;
-  uint32_t instanceExtensionCount = 0;
-  result = xrEnumerateInstanceExtensionProperties(
-    NULL, 0, &instanceExtensionCount, NULL);
+  uint32_t count = 0;
+  result = xrEnumerateInstanceExtensionProperties(NULL, 0, &count, NULL);
 
-  if (!xr_result(result,
-                 "Failed to enumerate number of instance extension properties"))
+  if (!xr_result(result, "Failed to enumerate instance extensions."))
     return false;
 
-  XrExtensionProperties instanceExtensionProperties[instanceExtensionCount];
-  for (uint16_t i = 0; i < instanceExtensionCount; i++)
-    instanceExtensionProperties[i] = (XrExtensionProperties){
+  XrExtensionProperties props[count];
+  for (uint16_t i = 0; i < count; i++)
+    props[i] = (XrExtensionProperties){
       .type = XR_TYPE_EXTENSION_PROPERTIES,
     };
 
-  result = xrEnumerateInstanceExtensionProperties(NULL, instanceExtensionCount,
-                                                  &instanceExtensionCount,
-                                                  instanceExtensionProperties);
+  result = xrEnumerateInstanceExtensionProperties(NULL, count, &count, props);
   if (!xr_result(result, "Failed to enumerate extension properties"))
     return false;
 
-  if (!is_extension_supported(vulkan_extension, instanceExtensionProperties,
-                              instanceExtensionCount)) {
+  print_supported_extensions(props, count);
+
+  if (!is_extension_supported(vulkan_extension, props, count)) {
     xrg_log_e("Runtime does not support required instance extension %s",
               vulkan_extension);
     return false;
   }
 
   if (is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
-                           instanceExtensionProperties, instanceExtensionCount)) {
+                             props, count)) {
     self->sky_type = SKY_TYPE_EQUIRECT2;
     xrg_log_i("Will use equirect2 layer for sky rendering.");
     return true;
+  } else {
+    xrg_log_w("%s extension unsupported.",
+              XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME);
   }
 
   if (is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME,
-                           instanceExtensionProperties, instanceExtensionCount)) {
+                             props, count)) {
     self->sky_type = SKY_TYPE_EQUIRECT1;
     xrg_log_i("Will use equirect1 layer for sky rendering.");
     return true;
+  } else {
+    xrg_log_w("%s extension unsupported.",
+              XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME);
   }
 
   self->sky_type = SKY_TYPE_PROJECTION;
@@ -1037,7 +1049,7 @@ xr_init_pre_vk(xr_example* self, char* vulkan_extension)
   self->is_visible = true;
   self->is_runnting = true;
 
-  if (!_check_vk_extensions(self, vulkan_extension))
+  if (!_check_xr_extensions(self, vulkan_extension))
     return false;
 
   if (!_enumerate_api_layers())
