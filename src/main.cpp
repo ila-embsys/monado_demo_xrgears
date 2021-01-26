@@ -27,6 +27,7 @@ public:
   bool quit = false;
   float animation_timer = 0.0;
   float revolutions_per_second = 0.0625;
+  struct timespec start_time;
 
   xrg_settings settings;
 
@@ -58,6 +59,10 @@ public:
 
   xrgears(int argc, char *argv[])
   {
+    if (clock_gettime(CLOCK_MONOTONIC, &start_time) != 0) {
+      xrg_log_e("Could not read system clock");
+    }
+
     if (!settings_parse_args(&settings, argc, argv))
       xrg_log_f("Invalid arguments.");
   }
@@ -551,7 +556,7 @@ public:
   void
   update_timer()
   {
-    const float sec_in_nsec = 1000000000.0f;
+    const double sec_in_nsec = 1000000000.0f;
 
     struct timespec mono_time;
     if (clock_gettime(CLOCK_MONOTONIC, &mono_time) != 0) {
@@ -559,8 +564,10 @@ public:
       return;
     }
 
-    float mono_secs =
-      ((float)mono_time.tv_sec + (mono_time.tv_nsec / sec_in_nsec));
+    mono_time.tv_sec -= start_time.tv_sec;
+
+    double mono_secs =
+      ((double)mono_time.tv_sec + ((double)mono_time.tv_nsec / sec_in_nsec));
 
     animation_timer = revolutions_per_second * mono_secs;
   }
