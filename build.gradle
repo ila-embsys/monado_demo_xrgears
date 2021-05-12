@@ -15,7 +15,7 @@ allprojects {
     repositories {
         google()
         maven {
-            url 'https://dl.bintray.com/rpavlik/maven'
+            url 'https://people.collabora.com/~rpavlik/openxr_maven'
         }
     }
 }
