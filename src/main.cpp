@@ -202,6 +202,7 @@ public:
 #if ENABLE_GEARS_LAYER
       if (!xr_acquire_swapchain(&xr, &xr.gears, i, &buffer_index[i])) {
         xrg_log_e("Could not acquire xr swapchain");
+        quit = true;
         return;
       }
 #endif
@@ -209,6 +210,7 @@ public:
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
         if (!xr_acquire_swapchain(&xr, &xr.sky, i, &buffer_index[i])) {
           xrg_log_e("Could not acquire xr swapchain");
+          quit = true;
           return;
         }
       }
@@ -260,6 +262,7 @@ public:
 #if ENABLE_GEARS_LAYER
       if (!xr_release_swapchain(xr.gears.swapchains[i])) {
         xrg_log_e("Could not release xr swapchain");
+        quit = true;
         return;
       }
 #endif
@@ -267,6 +270,7 @@ public:
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
         if (!xr_release_swapchain(xr.sky.swapchains[i])) {
           xrg_log_e("Could not release xr swapchain");
+          quit = true;
           return;
         }
       }
