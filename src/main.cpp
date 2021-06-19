@@ -200,15 +200,15 @@ public:
     uint32_t buffer_index[2] = { 0, 0 };
     for (uint32_t i = 0; i < 2; i++) {
 #if ENABLE_GEARS_LAYER
-      if (!xr_aquire_swapchain(&xr, &xr.gears, i, &buffer_index[i])) {
-        xrg_log_e("Could not aquire xr swapchain");
+      if (!xr_acquire_swapchain(&xr, &xr.gears, i, &buffer_index[i])) {
+        xrg_log_e("Could not acquire xr swapchain");
         return;
       }
 #endif
 
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
-        if (!xr_aquire_swapchain(&xr, &xr.sky, i, &buffer_index[i])) {
-          xrg_log_e("Could not aquire xr swapchain");
+        if (!xr_acquire_swapchain(&xr, &xr.sky, i, &buffer_index[i])) {
+          xrg_log_e("Could not acquire xr swapchain");
           return;
         }
       }

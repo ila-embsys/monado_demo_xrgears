@@ -851,7 +851,7 @@ xr_begin_frame(xr_example* self)
 }
 
 bool
-xr_aquire_swapchain(xr_example* self,
+xr_acquire_swapchain(xr_example* self,
                     xr_proj* proj,
                     uint32_t i,
                     uint32_t* buffer_index)
