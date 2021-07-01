@@ -52,6 +52,12 @@ typedef enum {
 
 typedef struct xr_example
 {
+  struct
+  {
+    bool equirect2;
+    bool equirect1;
+  } extensions;
+
   XrInstance instance;
   XrSession session;
   XrSpace local_space;

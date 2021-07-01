@@ -105,28 +105,34 @@ _check_xr_extensions(xr_example* self, const char* vulkan_extension)
     return false;
   }
 
+  // try equirect2 ext for sky first, then equirect1, lastly projection.
   if (is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME,
                              props, count)) {
+    self->extensions.equirect2 = true;
     self->sky_type = SKY_TYPE_EQUIRECT2;
     xrg_log_i("Will use equirect2 layer for sky rendering.");
-    return true;
   } else {
     xrg_log_w("%s extension unsupported.",
               XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME);
   }
 
-  if (is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME,
-                             props, count)) {
-    self->sky_type = SKY_TYPE_EQUIRECT1;
-    xrg_log_i("Will use equirect1 layer for sky rendering.");
-    return true;
-  } else {
-    xrg_log_w("%s extension unsupported.",
-              XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME);
+  if (!self->extensions.equirect2) {
+    if (is_extension_supported(XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME,
+                               props, count)) {
+      self->sky_type = SKY_TYPE_EQUIRECT1;
+      xrg_log_i("Will use equirect1 layer for sky rendering.");
+      self->extensions.equirect1 = true;
+    } else {
+      xrg_log_w("%s extension unsupported.",
+                XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME);
+    }
   }
 
-  self->sky_type = SKY_TYPE_PROJECTION;
-  xrg_log_i("Will use projection layer for sky rendering.");
+  if (!self->extensions.equirect2 && !self->extensions.equirect1) {
+    self->sky_type = SKY_TYPE_PROJECTION;
+    xrg_log_i("Will use projection layer for sky rendering.");
+  }
+
   return true;
 }
 
