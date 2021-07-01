@@ -168,26 +168,14 @@ static bool
 _create_instance(xr_example* self, char* vulkan_extension)
 {
   const char* enabledExtensions[2] = { vulkan_extension };
-  uint32_t num_extensions;
-  switch(self->sky_type) {
-  case SKY_TYPE_EQUIRECT1:
-  case SKY_TYPE_EQUIRECT2:
-    num_extensions = 2;
-    break;
-  default:
-    num_extensions = 1;
-  }
+  uint32_t num_extensions = 1;
 
-  switch(self->sky_type) {
-  case SKY_TYPE_EQUIRECT1:
-    enabledExtensions[1] = XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME;
-    break;
-  case SKY_TYPE_EQUIRECT2:
-    enabledExtensions[1] = XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME;
-    break;
-  default:
-    break;
-  };
+  // only enables either equirect2 or equirect1, not both
+  if (self->extensions.equirect2) {
+    enabledExtensions[num_extensions++] = XR_KHR_COMPOSITION_LAYER_EQUIRECT2_EXTENSION_NAME;
+  } else if (self->extensions.equirect1) {
+    enabledExtensions[num_extensions++] = XR_KHR_COMPOSITION_LAYER_EQUIRECT_EXTENSION_NAME;
+  }
 
   XrInstanceCreateInfo instanceCreateInfo = {
     .type = XR_TYPE_INSTANCE_CREATE_INFO,
