@@ -890,14 +890,8 @@ xr_release_swapchain(XrSwapchain swapchain)
 
 static void
 _init_layers(xr_example* self) {
-  self->num_layers = 0;
-
-  switch(self->sky_type) {
-  case SKY_TYPE_OFF:
-    break;
-  default:
-    self->num_layers += 1;
-  }
+  // sky layer is always "available" to be rendered
+  self->num_layers = 1;
 
 #if ENABLE_GEARS_LAYER
   self->num_layers += 1;
@@ -908,36 +902,48 @@ _init_layers(xr_example* self) {
 #endif
 
   self->layers = malloc(sizeof(const XrCompositionLayerBaseHeader*) * self->num_layers);
+}
 
-  uint32_t li = 0;
+static void
+_select_layers(xr_example* self)
+{
+  self->num_layers = 0;
 
   switch(self->sky_type) {
   case SKY_TYPE_PROJECTION:
-    self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->sky.layer;
+    self->layers[self->num_layers++] =
+      (const XrCompositionLayerBaseHeader* const)&self->sky.layer;
     break;
   case SKY_TYPE_EQUIRECT1:
-    self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->equirect.layer_v1;
+    self->layers[self->num_layers++] =
+      (const XrCompositionLayerBaseHeader* const)&self->equirect.layer_v1;
     break;
   case SKY_TYPE_EQUIRECT2:
-    self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->equirect.layer_v2;
+    self->layers[self->num_layers++] =
+      (const XrCompositionLayerBaseHeader* const)&self->equirect.layer_v2;
     break;
   default:
     break;
   }
 
 #if ENABLE_GEARS_LAYER
-  self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->gears.layer;
+  self->layers[self->num_layers++] =
+    (const XrCompositionLayerBaseHeader* const)&self->gears.layer;
 #endif
 
 #if ENABLE_QUAD_LAYERS
-  self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->quad.layer;
-  self->layers[li++] = (const XrCompositionLayerBaseHeader* const) & self->quad2.layer;
+  self->layers[self->num_layers++] =
+    (const XrCompositionLayerBaseHeader* const)&self->quad.layer;
+  self->layers[self->num_layers++] =
+    (const XrCompositionLayerBaseHeader* const)&self->quad2.layer;
 #endif
 }
 
 bool
 xr_end_frame(xr_example* self)
 {
+  _select_layers(self);
+
   XrResult result;
   XrFrameEndInfo frameEndInfo = {
     .type = XR_TYPE_FRAME_END_INFO,
