@@ -138,6 +138,13 @@ _check_xr_extensions(xr_example* self, const char* vulkan_extension)
   xrg_log_i("Runtime support for instance extension %s: %d",
             XR_EXTX_OVERLAY_EXTENSION_NAME, self->extensions.overlay);
 
+  if (!is_extension_supported(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME, props, count)) {
+    self->extensions.depth_layer = true;;
+    xrg_log_i("Runtime does not support depth layer extension %s",
+              XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
+    // not fatal
+  }
+
   return true;
 }
 
@@ -172,7 +179,7 @@ _enumerate_api_layers()
 static bool
 _create_instance(xr_example* self, char* vulkan_extension)
 {
-  const char* enabledExtensions[3] = { vulkan_extension };
+  const char* enabledExtensions[4] = { vulkan_extension };
   uint32_t num_extensions = 1;
 
   // only enables either equirect2 or equirect1, not both
@@ -184,6 +191,10 @@ _create_instance(xr_example* self, char* vulkan_extension)
 
   if (self->extensions.overlay) {
     enabledExtensions[num_extensions++] = XR_EXTX_OVERLAY_EXTENSION_NAME;
+  }
+
+  if (self->extensions.depth_layer) {
+    enabledExtensions[num_extensions++] = XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME;
   }
 
   XrInstanceCreateInfo instanceCreateInfo = {

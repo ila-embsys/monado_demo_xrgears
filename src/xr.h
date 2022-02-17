@@ -57,6 +57,7 @@ typedef struct xr_example
     bool equirect2;
     bool equirect1;
     bool overlay;
+    bool depth_layer;
   } extensions;
 
   bool main_session_visible;
