@@ -811,10 +811,8 @@ _create_depth_swapchains(xr_example* self, xr_proj* proj)
   }
 
   if (self->depth_swapchain_format == 0) {
-    xrg_log_e(
-      "None of our preferred depth swapchain formats are supported, pretend "
-      "depth is not supported");
-    self->extensions.depth_layer = 0;
+    xrg_log_e("None of our preferred depth swapchain formats are supported");
+    return false;
   }
   xrg_log_i("Using depth swapchain format 0x%x", self->depth_swapchain_format);
 
