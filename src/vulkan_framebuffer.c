@@ -23,86 +23,24 @@ vulkan_framebuffer_destroy(vulkan_framebuffer* self)
 {
   // Color attachments
   vkDestroyImageView(self->device, self->color_view, NULL);
-
-  // Depth attachment
-  vkDestroyImageView(self->device, self->depth.view, NULL);
-  vkDestroyImage(self->device, self->depth.image, NULL);
-  vkFreeMemory(self->device, self->depth.mem, NULL);
+  vkDestroyImageView(self->device, self->depth_view, NULL);
 
   vkDestroyFramebuffer(self->device, self->frame_buffer, NULL);
 
   vkDestroyRenderPass(self->device, self->render_pass, NULL);
 }
 
-static void
-_create_depth_attachment(vulkan_framebuffer* self,
-                         vulkan_device* vulkanDevice,
-                         VkFormat format)
-{
-  self->depth.format = format;
-
-  VkImageCreateInfo image = {
-    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-    .imageType = VK_IMAGE_TYPE_2D,
-    .format = format,
-    .extent = { .width = self->width, .height = self->height, .depth = 1 },
-    .mipLevels = 1,
-    .arrayLayers = 1,
-    .samples = VK_SAMPLE_COUNT_1_BIT,
-    .tiling = VK_IMAGE_TILING_OPTIMAL,
-    .usage =
-      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-  };
-  vk_check(vkCreateImage(self->device, &image, NULL, &self->depth.image));
-
-  VkMemoryRequirements mem_reqs;
-  vkGetImageMemoryRequirements(self->device, self->depth.image, &mem_reqs);
-
-  VkMemoryAllocateInfo mem_alloc = {
-    .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-    .allocationSize = mem_reqs.size,
-  };
-
-  if (!vulkan_device_get_memory_type(vulkanDevice, mem_reqs.memoryTypeBits,
-                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                     &mem_alloc.memoryTypeIndex))
-    xrg_log_e("Could not find memory type.");
-
-  vk_check(vkAllocateMemory(self->device, &mem_alloc, NULL, &self->depth.mem));
-  vk_check(
-    vkBindImageMemory(self->device, self->depth.image, self->depth.mem, 0));
-
-  VkImageViewCreateInfo image_view = {
-    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .image = self->depth.image,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = format,
-    .subresourceRange =
-    {
-      .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-      .baseMipLevel = 0,
-      .levelCount = 1,
-      .baseArrayLayer = 0,
-      .layerCount = 1,
-    },
-  };
-
-  vk_check(
-    vkCreateImageView(self->device, &image_view, NULL, &self->depth.view));
-}
-
 void
 vulkan_framebuffer_init(vulkan_framebuffer* self,
-                        vulkan_device* vulkanDevice,
                         VkImage color_image,
                         VkFormat color_format,
+                        VkImage depth_image,
+                        VkFormat depth_format,
                         uint32_t width,
                         uint32_t height)
 {
   self->width = width;
   self->height = height;
-
-  _create_depth_attachment(self, vulkanDevice, VK_FORMAT_D32_SFLOAT);
 
   // Set up separate renderpass with references to the color and depth
   // attachments
@@ -129,10 +67,10 @@ vulkan_framebuffer_init(vulkan_framebuffer* self,
 
   // Formats
   attachmentDescs[0].format = color_format;
-  attachmentDescs[1].format = self->depth.format;
+  attachmentDescs[1].format = depth_format;
 
   VkAttachmentReference colorReferences[1] = {
-    { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }
+    { .attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }
   };
 
   VkAttachmentReference depthReference = {
@@ -202,7 +140,26 @@ vulkan_framebuffer_init(vulkan_framebuffer* self,
   vk_check(
     vkCreateImageView(self->device, &imageView, NULL, &self->color_view));
 
-  VkImageView attachments[2] = { self->color_view, self->depth.view };
+
+  VkImageViewCreateInfo depthImageView = {
+    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+    .image = depth_image,
+    .viewType = VK_IMAGE_VIEW_TYPE_2D,
+    .format = depth_format,
+    .subresourceRange =
+    {
+      .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+      .baseMipLevel = 0,
+      .levelCount = 1,
+      .baseArrayLayer = 0,
+      .layerCount = 1,
+    },
+  };
+
+  vk_check(
+    vkCreateImageView(self->device, &depthImageView, NULL, &self->depth_view));
+
+  VkImageView attachments[2] = { self->color_view, self->depth_view };
 
   VkFramebufferCreateInfo fbufCreateInfo = {
     .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,

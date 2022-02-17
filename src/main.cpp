@@ -438,8 +438,9 @@ public:
       for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++) {
         gears_buffers[i][j] = vulkan_framebuffer_create(vk_device->device);
         vulkan_framebuffer_init(
-          gears_buffers[i][j], vk_device, xr.gears.images[i][j].image,
-          (VkFormat)xr.swapchain_format,
+          gears_buffers[i][j], xr.gears.images[i][j].image,
+          (VkFormat)xr.swapchain_format, xr.gears.depth_images[i][j].image,
+          (VkFormat)xr.depth_swapchain_format,
           xr.configuration_views[i].recommendedImageRectWidth,
           xr.configuration_views[i].recommendedImageRectHeight);
       }
@@ -454,8 +455,9 @@ public:
         for (uint32_t j = 0; j < xr.sky.swapchain_length[i]; j++) {
           sky_buffers[i][j] = vulkan_framebuffer_create(vk_device->device);
           vulkan_framebuffer_init(
-            sky_buffers[i][j], vk_device, xr.sky.images[i][j].image,
-            (VkFormat)xr.swapchain_format,
+            sky_buffers[i][j], xr.sky.images[i][j].image,
+            (VkFormat)xr.swapchain_format, xr.gears.depth_images[i][j].image,
+            (VkFormat)xr.depth_swapchain_format,
             xr.configuration_views[i].recommendedImageRectWidth,
             xr.configuration_views[i].recommendedImageRectHeight);
         }

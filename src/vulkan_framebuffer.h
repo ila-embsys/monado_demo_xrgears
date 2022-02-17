@@ -26,13 +26,7 @@ typedef struct
 
   VkImageView color_view;
 
-  struct
-  {
-    VkImage image;
-    VkDeviceMemory mem;
-    VkImageView view;
-    VkFormat format;
-  } depth;
+  VkImageView depth_view;
 
   uint32_t width, height;
   VkFramebuffer frame_buffer;
@@ -48,9 +42,10 @@ vulkan_framebuffer_destroy(vulkan_framebuffer* self);
 
 void
 vulkan_framebuffer_init(vulkan_framebuffer* self,
-                        vulkan_device* vulkanDevice,
                         VkImage color_image,
                         VkFormat color_format,
+                        VkImage depth_image,
+                        VkFormat depth_format,
                         uint32_t width,
                         uint32_t height);
 
