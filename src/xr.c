@@ -768,9 +768,114 @@ _create_swapchains(xr_example* self, xr_proj* proj)
               proj->swapchain_length[i]);
   }
 
+  return true;
+}
+
+
+static bool
+_create_depth_swapchains(xr_example* self, xr_proj* proj)
+{
+  XrResult result;
+  uint32_t swapchainFormatCount;
+  result =
+    xrEnumerateSwapchainFormats(self->session, 0, &swapchainFormatCount, NULL);
+  if (!xr_result(result, "Failed to get number of supported swapchain formats"))
+    return false;
+
+  int64_t swapchainFormats[swapchainFormatCount];
+  result = xrEnumerateSwapchainFormats(self->session, swapchainFormatCount,
+                                       &swapchainFormatCount, swapchainFormats);
+  if (!xr_result(result, "Failed to enumerate swapchain formats"))
+    return false;
+
+  /* First create swapchains and query the length for each swapchain. */
+  proj->depth_swapchains =
+    (XrSwapchain*)malloc(sizeof(XrSwapchain) * self->view_count);
+
+  proj->depth_swapchain_length =
+    (uint32_t*)malloc(sizeof(uint32_t) * self->view_count);
+
+  self->depth_swapchain_format = 0;
+
+  int64_t preference1 = VK_FORMAT_D32_SFLOAT;
+  int64_t preference2 = VK_FORMAT_D16_UNORM;
+
+  for (uint32_t i = 0; i < swapchainFormatCount; i++) {
+    if (swapchainFormats[i] == preference1) {
+      self->depth_swapchain_format = preference1;
+    } else if (swapchainFormats[i] == preference2) {
+      if (self->depth_swapchain_format == 0) {
+        self->depth_swapchain_format = preference2;
+      }
+    }
+  }
+
+  if (self->depth_swapchain_format == 0) {
+    xrg_log_e(
+      "None of our preferred depth swapchain formats are supported, pretend "
+      "depth is not supported");
+    self->extensions.depth_layer = 0;
+  }
+  xrg_log_i("Using depth swapchain format 0x%x", self->depth_swapchain_format);
+
+  for (uint32_t i = 0; i < self->view_count; i++) {
+    XrSwapchainCreateInfo swapchainCreateInfo = {
+      .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
+      .createFlags = 0,
+      .usageFlags = XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+      // just use the first enumerated format
+      .format = self->depth_swapchain_format,
+      .sampleCount = 1,
+      .width = self->configuration_views[i].recommendedImageRectWidth,
+      .height = self->configuration_views[i].recommendedImageRectHeight,
+      .faceCount = 1,
+      .arraySize = 1,
+      .mipCount = 1,
+    };
+
+    xrg_log_i("depth Swapchain %d dimensions: %dx%d", i,
+              self->configuration_views[i].recommendedImageRectWidth,
+              self->configuration_views[i].recommendedImageRectHeight);
+
+    result = xrCreateSwapchain(self->session, &swapchainCreateInfo,
+                               &proj->depth_swapchains[i]);
+    if (!xr_result(result, "Failed to create depth swapchain %d!", i))
+      return false;
+
+    result = xrEnumerateSwapchainImages(proj->depth_swapchains[i], 0,
+                                        &proj->depth_swapchain_length[i], NULL);
+    if (!xr_result(result, "Failed to enumerate depth swapchain lengths"))
+      return false;
+  }
+
+  proj->depth_images = (XrSwapchainImageVulkanKHR**)malloc(
+    sizeof(XrSwapchainImageVulkanKHR*) * self->view_count);
+  for (uint32_t i = 0; i < self->view_count; i++) {
+    proj->depth_images[i] = (XrSwapchainImageVulkanKHR*)malloc(
+      sizeof(XrSwapchainImageVulkanKHR) * proj->depth_swapchain_length[i]);
+
+    for (uint32_t j = 0; j < proj->depth_swapchain_length[i]; j++) {
+      // XR_TYPE_SWAPCHAIN_IMAGE_VULKAN2_KHR aliased to
+      // XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR
+      proj->depth_images[i][j].type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
+      proj->depth_images[i][j].next = NULL;
+    }
+  }
+
+  for (uint32_t i = 0; i < self->view_count; i++) {
+    result = xrEnumerateSwapchainImages(
+      proj->depth_swapchains[i], proj->depth_swapchain_length[i],
+      &proj->depth_swapchain_length[i],
+      (XrSwapchainImageBaseHeader*)proj->depth_images[i]);
+    if (!xr_result(result, "Failed to enumerate depth swapchains"))
+      return false;
+    xrg_log_d("xrEnumerateSwapchainImages: depth swapchain_length[%d] %d", i,
+              proj->depth_swapchain_length[i]);
+  }
 
   return true;
 }
+
 
 static void
 _create_projection_views(xr_example* self, xr_proj* proj)
@@ -1038,6 +1143,10 @@ _init_proj(xr_example* self, XrCompositionLayerFlags flags, xr_proj* proj)
     .viewCount = self->view_count,
     .views = proj->views,
   };
+
+  if (!_create_depth_swapchains(self, proj))
+    return false;
+
   return true;
 }
 

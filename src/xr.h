@@ -40,7 +40,13 @@ typedef struct xr_proj
   XrCompositionLayerProjectionView* views;
   XrSwapchain* swapchains;
   uint32_t* swapchain_length; // One length per view
+
+  XrSwapchain* depth_swapchains;
+  uint32_t* depth_swapchain_length;
+
   XrSwapchainImageVulkanKHR** images;
+
+  XrSwapchainImageVulkanKHR** depth_images;
 } xr_proj;
 
 typedef enum {
@@ -86,6 +92,7 @@ typedef struct xr_example
   XrView* views;
 
   int64_t swapchain_format;
+  int64_t depth_swapchain_format;
 
 #if ENABLE_QUAD_LAYERS
   xr_quad quad;
