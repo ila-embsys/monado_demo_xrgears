@@ -197,10 +197,9 @@ public:
   {
     xr_begin_frame(&xr);
 
-    uint32_t buffer_index[2] = { 0, 0 };
     for (uint32_t i = 0; i < 2; i++) {
 #if ENABLE_GEARS_LAYER
-      if (!xr_acquire_swapchain(&xr, &xr.gears, i, &buffer_index[i])) {
+      if (!xr_proj_acquire_swapchain(&xr, &xr.gears, i)) {
         xrg_log_e("Could not acquire xr swapchain");
         quit = true;
         return;
@@ -208,7 +207,7 @@ public:
 #endif
 
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
-        if (!xr_acquire_swapchain(&xr, &xr.sky, i, &buffer_index[i])) {
+        if (!xr_proj_acquire_swapchain(&xr, &xr.sky, i)) {
           xrg_log_e("Could not acquire xr swapchain");
           quit = true;
           return;
@@ -216,7 +215,7 @@ public:
       }
 
       glm::mat4 projection =
-        _create_projection_from_fov(xr.views[i].fov, 0.05f, 100.0f);
+        _create_projection_from_fov(xr.views[i].fov, xr.near_z, xr.far_z);
       glm::mat4 view = _create_view_from_pose(&xr.views[i].pose);
 
 #if ENABLE_GEARS_LAYER
@@ -249,18 +248,18 @@ public:
 #if ENABLE_GEARS_LAYER
     // our command buffers are not tied to the swapchain buffer index,
     // but for convenience we reuse the acquired index of the first view.
-    submit_info.pCommandBuffers = &gears_draw_cmd[buffer_index[0]];
+    submit_info.pCommandBuffers = &gears_draw_cmd[xr.gears.last_acquired[0]];
     vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
 #endif
 
     if (xr.sky_type == SKY_TYPE_PROJECTION) {
-      submit_info.pCommandBuffers = &sky_draw_cmd[buffer_index[0]];
+      submit_info.pCommandBuffers = &sky_draw_cmd[xr.sky.last_acquired[0]];
       vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
     }
 
     for (uint32_t i = 0; i < 2; i++) {
 #if ENABLE_GEARS_LAYER
-      if (!xr_release_swapchain(xr.gears.swapchains[i])) {
+      if (!xr_proj_release_swapchain(&xr, &xr.gears, i)) {
         xrg_log_e("Could not release xr swapchain");
         quit = true;
         return;
@@ -268,7 +267,7 @@ public:
 #endif
 
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
-        if (!xr_release_swapchain(xr.sky.swapchains[i])) {
+        if (!xr_proj_release_swapchain(&xr, &xr.sky, i)) {
           xrg_log_e("Could not release xr swapchain");
           quit = true;
           return;
@@ -381,6 +380,9 @@ public:
   bool
   init()
   {
+
+    xr.near_z = 0.05f;
+    xr.far_z = 100.0f;
 
     /*
      * vulkan_enable2 lets the runtime create a VkInstance and VkDevice, so we

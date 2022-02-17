@@ -37,16 +37,21 @@ extern "C" {
 typedef struct xr_proj
 {
   XrCompositionLayerProjection layer;
+  XrCompositionLayerDepthInfoKHR depth_layer;
   XrCompositionLayerProjectionView* views;
   XrSwapchain* swapchains;
   uint32_t* swapchain_length; // One length per view
+  uint32_t* last_acquired;
 
+  bool has_depth;
   XrSwapchain* depth_swapchains;
   uint32_t* depth_swapchain_length;
+  uint32_t* depth_last_acquired;
 
   XrSwapchainImageVulkanKHR** images;
 
   XrSwapchainImageVulkanKHR** depth_images;
+
 } xr_proj;
 
 typedef enum {
@@ -91,6 +96,9 @@ typedef struct xr_example
   XrFrameState frameState;
   XrView* views;
 
+  float near_z;
+  float far_z;
+
   int64_t swapchain_format;
   int64_t depth_swapchain_format;
 
@@ -131,13 +139,10 @@ bool
 xr_begin_frame(xr_example* self);
 
 bool
-xr_acquire_swapchain(xr_example* self,
-                    xr_proj* proj,
-                    uint32_t i,
-                    uint32_t* buffer_index);
+xr_proj_acquire_swapchain(xr_example* self, xr_proj* proj, uint32_t i);
 
 bool
-xr_release_swapchain(XrSwapchain swapchain);
+xr_proj_release_swapchain(xr_example* self, xr_proj* proj, uint32_t i);
 
 bool
 xr_end_frame(xr_example* self);

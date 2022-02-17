@@ -711,6 +711,8 @@ _create_swapchains(xr_example* self, xr_proj* proj)
   proj->swapchain_length =
     (uint32_t*)malloc(sizeof(uint32_t) * self->view_count);
 
+  proj->last_acquired = (uint32_t*)malloc(sizeof(uint32_t) * self->view_count);
+
   self->swapchain_format = swapchainFormats[0];
 
   for (uint32_t i = 0; i < self->view_count; i++) {
@@ -793,6 +795,9 @@ _create_depth_swapchains(xr_example* self, xr_proj* proj)
     (XrSwapchain*)malloc(sizeof(XrSwapchain) * self->view_count);
 
   proj->depth_swapchain_length =
+    (uint32_t*)malloc(sizeof(uint32_t) * self->view_count);
+
+  proj->depth_last_acquired =
     (uint32_t*)malloc(sizeof(uint32_t) * self->view_count);
 
   self->depth_swapchain_format = 0;
@@ -881,7 +886,7 @@ _create_projection_views(xr_example* self, xr_proj* proj)
   proj->views = (XrCompositionLayerProjectionView*)malloc(
     sizeof(XrCompositionLayerProjectionView) * self->view_count);
 
-  for (uint32_t i = 0; i < self->view_count; i++)
+  for (uint32_t i = 0; i < self->view_count; i++) {
     proj->views[i] = (XrCompositionLayerProjectionView) {
       .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
       .subImage = {
@@ -894,6 +899,19 @@ _create_projection_views(xr_example* self, xr_proj* proj)
         },
       },
     };
+
+    if (proj->has_depth) {
+      proj->depth_layer.subImage = (XrSwapchainSubImage){
+        .swapchain = proj->depth_swapchains[i],
+        .imageRect = {
+          .extent = {
+            .width = (int32_t) self->configuration_views[i].recommendedImageRectWidth,
+            .height = (int32_t) self->configuration_views[i].recommendedImageRectHeight,
+          },
+        }
+      };
+    }
+  }
 }
 
 bool
@@ -983,19 +1001,18 @@ xr_begin_frame(xr_example* self)
 }
 
 bool
-xr_acquire_swapchain(xr_example* self,
-                    xr_proj* proj,
-                    uint32_t i,
-                    uint32_t* buffer_index)
+xr_proj_acquire_swapchain(xr_example* self, xr_proj* proj, uint32_t i)
 {
+  (void)self;
+
   XrResult result;
 
   XrSwapchainImageAcquireInfo acquire_info = {
     .type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO,
   };
 
-  result =
-    xrAcquireSwapchainImage(proj->swapchains[i], &acquire_info, buffer_index);
+  result = xrAcquireSwapchainImage(proj->swapchains[i], &acquire_info,
+                                   &proj->last_acquired[i]);
   if (!xr_result(result, "failed to acquire swapchain image!"))
     return false;
 
@@ -1007,21 +1024,38 @@ xr_acquire_swapchain(xr_example* self,
   if (!xr_result(result, "failed to wait for swapchain image!"))
     return false;
 
-  proj->views[i].pose = self->views[i].pose;
-  proj->views[i].fov = self->views[i].fov;
+
+  if (proj->has_depth) {
+    result = xrAcquireSwapchainImage(proj->depth_swapchains[i], &acquire_info,
+                                     &proj->depth_last_acquired[i]);
+    if (!xr_result(result, "failed to acquire depth swapchain image!"))
+      return false;
+
+    result = xrWaitSwapchainImage(proj->depth_swapchains[i], &wait_info);
+    if (!xr_result(result, "failed to wait for depth swapchain image!"))
+      return false;
+  }
 
   return true;
 }
 
 bool
-xr_release_swapchain(XrSwapchain swapchain)
+xr_proj_release_swapchain(xr_example* self, xr_proj* proj, uint32_t i)
 {
+  (void)self;
+
   XrSwapchainImageReleaseInfo info = {
     .type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO,
   };
-  XrResult res = xrReleaseSwapchainImage(swapchain, &info);
+  XrResult res = xrReleaseSwapchainImage(proj->swapchains[i], &info);
   if (!xr_result(res, "failed to release swapchain image!"))
     return false;
+
+  if (proj->has_depth) {
+    XrResult res = xrReleaseSwapchainImage(proj->depth_swapchains[i], &info);
+    if (!xr_result(res, "failed to release depth swapchain image!"))
+      return false;
+  }
 
   return true;
 }
@@ -1069,6 +1103,21 @@ _select_layers(xr_example* self)
 #if ENABLE_GEARS_LAYER
   self->layers[self->num_layers++] =
     (const XrCompositionLayerBaseHeader* const)&self->gears.layer;
+
+  for (uint32_t i = 0; i < self->view_count; i++) {
+    self->gears.views[i].pose = self->views[i].pose;
+    self->gears.views[i].fov = self->views[i].fov;
+
+    if (self->gears.has_depth) {
+      self->gears.views[i].next = &self->gears.depth_layer;
+
+      self->gears.depth_layer.nearZ = self->near_z;
+      self->gears.depth_layer.farZ = self->far_z;
+
+      self->gears.depth_layer.minDepth = 0.0;
+      self->gears.depth_layer.maxDepth = 1.0;
+    }
+  }
 #endif
 
 #if ENABLE_QUAD_LAYERS
@@ -1129,10 +1178,26 @@ xr_cleanup(xr_example* self)
 }
 
 static bool
-_init_proj(xr_example* self, XrCompositionLayerFlags flags, xr_proj* proj)
+_init_proj(xr_example* self,
+           XrCompositionLayerFlags flags,
+           xr_proj* proj,
+           bool has_depth)
 {
+  proj->has_depth = has_depth;
+
   if (!_create_swapchains(self, proj))
     return false;
+
+  if (has_depth) {
+    if (!_create_depth_swapchains(self, proj))
+      return false;
+  }
+
+  // has to be initialized before _create_projection_views
+  proj->depth_layer = (XrCompositionLayerDepthInfoKHR){
+    .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR,
+  };
+
   _create_projection_views(self, proj);
   proj->layer = (XrCompositionLayerProjection){
     .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
@@ -1141,9 +1206,6 @@ _init_proj(xr_example* self, XrCompositionLayerFlags flags, xr_proj* proj)
     .viewCount = self->view_count,
     .views = proj->views,
   };
-
-  if (!_create_depth_swapchains(self, proj))
-    return false;
 
   return true;
 }
@@ -1268,11 +1330,12 @@ xr_init_post_vk(xr_example* self,
 
 #if ENABLE_GEARS_LAYER
   _init_proj(self, XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-             &self->gears);
+             &self->gears, true);
 #endif
 
   if (self->sky_type == SKY_TYPE_PROJECTION)
-    _init_proj(self, XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT, &self->sky);
+    _init_proj(self, XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT, &self->sky,
+               false);
 
   return true;
 }
