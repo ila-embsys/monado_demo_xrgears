@@ -133,10 +133,12 @@ _check_xr_extensions(xr_example* self, const char* vulkan_extension)
     xrg_log_i("Will use projection layer for sky rendering.");
   }
 
-  self->extensions.overlay =
-    is_extension_supported(XR_EXTX_OVERLAY_EXTENSION_NAME, props, count);
-  xrg_log_i("Runtime support for instance extension %s: %d",
-            XR_EXTX_OVERLAY_EXTENSION_NAME, self->extensions.overlay);
+  if (self->settings->enable_overlay) {
+    self->extensions.overlay =
+      is_extension_supported(XR_EXTX_OVERLAY_EXTENSION_NAME, props, count);
+    xrg_log_i("Runtime support for instance extension %s: %d",
+              XR_EXTX_OVERLAY_EXTENSION_NAME, self->extensions.overlay);
+  }
 
   if (!is_extension_supported(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME, props, count)) {
     self->extensions.depth_layer = true;;
@@ -1065,13 +1067,13 @@ _init_layers(xr_example* self) {
   // sky layer is always "available" to be rendered
   self->num_layers = 1;
 
-#if ENABLE_GEARS_LAYER
-  self->num_layers += 1;
-#endif
+  if (!self->settings->disable_gears) {
+    self->num_layers += 1;
+  }
 
-#if ENABLE_QUAD_LAYERS
-  self->num_layers += 2;
-#endif
+  if (!self->settings->disable_quad) {
+    self->num_layers += 2;
+  }
 
   self->layers = malloc(sizeof(const XrCompositionLayerBaseHeader*) * self->num_layers);
 }
@@ -1100,32 +1102,32 @@ _select_layers(xr_example* self)
     }
   }
 
-#if ENABLE_GEARS_LAYER
-  self->layers[self->num_layers++] =
-    (const XrCompositionLayerBaseHeader* const)&self->gears.layer;
+  if (!self->settings->disable_gears) {
+    self->layers[self->num_layers++] =
+      (const XrCompositionLayerBaseHeader* const)&self->gears.layer;
 
-  for (uint32_t i = 0; i < self->view_count; i++) {
-    self->gears.views[i].pose = self->views[i].pose;
-    self->gears.views[i].fov = self->views[i].fov;
+    for (uint32_t i = 0; i < self->view_count; i++) {
+      self->gears.views[i].pose = self->views[i].pose;
+      self->gears.views[i].fov = self->views[i].fov;
 
-    if (self->gears.has_depth) {
-      self->gears.views[i].next = &self->gears.depth_layer;
+      if (self->gears.has_depth) {
+        self->gears.views[i].next = &self->gears.depth_layer;
 
-      self->gears.depth_layer.nearZ = self->near_z;
-      self->gears.depth_layer.farZ = self->far_z;
+        self->gears.depth_layer.nearZ = self->near_z;
+        self->gears.depth_layer.farZ = self->far_z;
 
-      self->gears.depth_layer.minDepth = 0.0;
-      self->gears.depth_layer.maxDepth = 1.0;
+        self->gears.depth_layer.minDepth = 0.0;
+        self->gears.depth_layer.maxDepth = 1.0;
+      }
     }
   }
-#endif
 
-#if ENABLE_QUAD_LAYERS
-  self->layers[self->num_layers++] =
-    (const XrCompositionLayerBaseHeader* const)&self->quad.layer;
-  self->layers[self->num_layers++] =
-    (const XrCompositionLayerBaseHeader* const)&self->quad2.layer;
-#endif
+  if (!self->settings->disable_quad) {
+    self->layers[self->num_layers++] =
+      (const XrCompositionLayerBaseHeader* const)&self->quad.layer;
+    self->layers[self->num_layers++] =
+      (const XrCompositionLayerBaseHeader* const)&self->quad2.layer;
+  }
 }
 
 bool
@@ -1163,9 +1165,9 @@ _cleanup_proj(xr_example* self, xr_proj* proj)
 void
 xr_cleanup(xr_example* self)
 {
-#if ENABLE_GEARS_LAYER
-  _cleanup_proj(self, &self->gears);
-#endif
+  if (!self->settings->disable_gears) {
+    _cleanup_proj(self, &self->gears);
+  }
 
   if (self->sky_type == SKY_TYPE_PROJECTION)
     _cleanup_proj(self, &self->sky);
@@ -1259,6 +1261,10 @@ xr_init_pre_vk(xr_example* self, char* vulkan_extension)
   if (!_check_xr_extensions(self, vulkan_extension))
     return false;
 
+  if (self->settings->disable_sky) {
+    self->sky_type = SKY_TYPE_OFF;
+  }
+
   if (!_enumerate_api_layers())
     return false;
 
@@ -1328,10 +1334,10 @@ xr_init_post_vk(xr_example* self,
   if (!_begin_session(self))
     return false;
 
-#if ENABLE_GEARS_LAYER
-  _init_proj(self, XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-             &self->gears, true);
-#endif
+  if (!self->settings->disable_gears) {
+    _init_proj(self, XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+               &self->gears, true);
+  }
 
   if (self->sky_type == SKY_TYPE_PROJECTION)
     _init_proj(self, XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT, &self->sky,

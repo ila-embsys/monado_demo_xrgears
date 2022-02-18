@@ -19,6 +19,10 @@ typedef struct
 {
   int gpu;
   bool vulkan_enable2;
+  bool disable_sky;
+  bool disable_quad;
+  bool disable_gears;
+  bool enable_overlay;
 } xrg_settings;
 
 bool

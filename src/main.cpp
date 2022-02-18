@@ -29,18 +29,20 @@ public:
   float revolutions_per_second = 0.0625;
   struct timespec start_time;
 
-  xrg_settings settings;
+  xrg_settings settings = {};
 
   xr_example xr;
 
   vulkan_context context;
   vulkan_device *vk_device;
 
-#if ENABLE_GEARS_LAYER
+
+  // gears layer
   vulkan_pipeline *gears;
   vulkan_framebuffer **gears_buffers[2];
   VkCommandBuffer *gears_draw_cmd;
-#endif
+
+
 
   vulkan_pipeline *equirect;
   vulkan_framebuffer **sky_buffers[2];
@@ -51,9 +53,10 @@ public:
   VkPhysicalDeviceFeatures device_features;
   VkPipelineCache pipeline_cache;
 
-#if ENABLE_QUAD_LAYERS
+
+  // quad layers
   vulkan_texture quad_texture[3];
-#endif
+
 
   vulkan_texture equirect_texture;
 
@@ -65,22 +68,25 @@ public:
 
     if (!settings_parse_args(&settings, argc, argv))
       xrg_log_f("Invalid arguments.");
+
+    xr.settings = &settings;
   }
 
   ~xrgears()
   {
-#if ENABLE_GEARS_LAYER
-    for (uint32_t i = 0; i < 2; i++) {
-      for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++)
-        if (gears_buffers[i][j]) {
-          vulkan_framebuffer_destroy(gears_buffers[i][j]);
-          delete gears_buffers[i][j];
-        }
-      free(gears_buffers[i]);
+
+    if (!settings.disable_gears) {
+      for (uint32_t i = 0; i < 2; i++) {
+        for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++)
+          if (gears_buffers[i][j]) {
+            vulkan_framebuffer_destroy(gears_buffers[i][j]);
+            delete gears_buffers[i][j];
+          }
+        free(gears_buffers[i]);
+      }
+      free(gears_draw_cmd);
+      delete gears;
     }
-    free(gears_draw_cmd);
-    delete gears;
-#endif
 
     if (xr.sky_type == SKY_TYPE_PROJECTION) {
       for (uint32_t i = 0; i < 2; i++) {
@@ -198,13 +204,14 @@ public:
     xr_begin_frame(&xr);
 
     for (uint32_t i = 0; i < 2; i++) {
-#if ENABLE_GEARS_LAYER
-      if (!xr_proj_acquire_swapchain(&xr, &xr.gears, i)) {
-        xrg_log_e("Could not acquire xr swapchain");
-        quit = true;
-        return;
+
+      if (!settings.disable_gears) {
+        if (!xr_proj_acquire_swapchain(&xr, &xr.gears, i)) {
+          xrg_log_e("Could not acquire xr swapchain");
+          quit = true;
+          return;
+        }
       }
-#endif
 
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
         if (!xr_proj_acquire_swapchain(&xr, &xr.sky, i)) {
@@ -218,22 +225,22 @@ public:
         _create_projection_from_fov(xr.views[i].fov, xr.near_z, xr.far_z);
       glm::mat4 view = _create_view_from_pose(&xr.views[i].pose);
 
-#if ENABLE_GEARS_LAYER
+      if (!settings.disable_gears) {
+        glm::vec4 position =
+          glm::vec4(xr.views[i].pose.position.x, -xr.views[i].pose.position.y,
+                    xr.views[i].pose.position.z, 1.0f);
 
-      glm::vec4 position =
-        glm::vec4(xr.views[i].pose.position.x, -xr.views[i].pose.position.y,
-                  xr.views[i].pose.position.z, 1.0f);
+        ((pipeline_gears *)gears)->update_vp(projection, view, position, i);
+      }
 
-      ((pipeline_gears *)gears)->update_vp(projection, view, position, i);
-#endif
 
       if (xr.sky_type == SKY_TYPE_PROJECTION)
         ((pipeline_equirect *)equirect)->update_vp(projection, view, i);
     }
 
-#if ENABLE_GEARS_LAYER
-    ((pipeline_gears *)gears)->update_time(animation_timer);
-#endif
+    if (!settings.disable_gears) {
+      ((pipeline_gears *)gears)->update_time(animation_timer);
+    }
 
     VkPipelineStageFlags stage_flags[1] = {
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -245,12 +252,12 @@ public:
       .commandBufferCount = 1,
     };
 
-#if ENABLE_GEARS_LAYER
-    // our command buffers are not tied to the swapchain buffer index,
-    // but for convenience we reuse the acquired index of the first view.
-    submit_info.pCommandBuffers = &gears_draw_cmd[xr.gears.last_acquired[0]];
-    vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
-#endif
+    if (!settings.disable_gears) {
+      // our command buffers are not tied to the swapchain buffer index,
+      // but for convenience we reuse the acquired index of the first view.
+      submit_info.pCommandBuffers = &gears_draw_cmd[xr.gears.last_acquired[0]];
+      vk_check(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
+    }
 
     if (xr.sky_type == SKY_TYPE_PROJECTION) {
       submit_info.pCommandBuffers = &sky_draw_cmd[xr.sky.last_acquired[0]];
@@ -258,13 +265,13 @@ public:
     }
 
     for (uint32_t i = 0; i < 2; i++) {
-#if ENABLE_GEARS_LAYER
-      if (!xr_proj_release_swapchain(&xr, &xr.gears, i)) {
-        xrg_log_e("Could not release xr swapchain");
-        quit = true;
-        return;
+      if (!settings.disable_gears) {
+        if (!xr_proj_release_swapchain(&xr, &xr.gears, i)) {
+          xrg_log_e("Could not release xr swapchain");
+          quit = true;
+          return;
+        }
       }
-#endif
 
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
         if (!xr_proj_release_swapchain(&xr, &xr.sky, i)) {
@@ -280,7 +287,6 @@ public:
     }
   }
 
-#if ENABLE_QUAD_LAYERS
   void
   init_quads()
   {
@@ -337,7 +343,6 @@ public:
         xrg_log_e("Could not release quad swapchain.");
     }
   }
-#endif
 
   void
   init_equirect()
@@ -432,21 +437,21 @@ public:
 
     for (uint32_t i = 0; i < xr.view_count; i++) {
 
-#if ENABLE_GEARS_LAYER
-      gears_draw_cmd = (VkCommandBuffer *)malloc(sizeof(VkCommandBuffer) *
-                                                 xr.gears.swapchain_length[i]);
-      gears_buffers[i] = (vulkan_framebuffer **)malloc(
-        sizeof(vulkan_framebuffer *) * xr.gears.swapchain_length[i]);
-      for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++) {
-        gears_buffers[i][j] = vulkan_framebuffer_create(vk_device->device);
-        vulkan_framebuffer_init(
-          gears_buffers[i][j], xr.gears.images[i][j].image,
-          (VkFormat)xr.swapchain_format, xr.gears.depth_images[i][j].image,
-          (VkFormat)xr.depth_swapchain_format,
-          xr.configuration_views[i].recommendedImageRectWidth,
-          xr.configuration_views[i].recommendedImageRectHeight);
+      if (!settings.disable_gears) {
+        gears_draw_cmd = (VkCommandBuffer *)malloc(
+          sizeof(VkCommandBuffer) * xr.gears.swapchain_length[i]);
+        gears_buffers[i] = (vulkan_framebuffer **)malloc(
+          sizeof(vulkan_framebuffer *) * xr.gears.swapchain_length[i]);
+        for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++) {
+          gears_buffers[i][j] = vulkan_framebuffer_create(vk_device->device);
+          vulkan_framebuffer_init(
+            gears_buffers[i][j], xr.gears.images[i][j].image,
+            (VkFormat)xr.swapchain_format, xr.gears.depth_images[i][j].image,
+            (VkFormat)xr.depth_swapchain_format,
+            xr.configuration_views[i].recommendedImageRectWidth,
+            xr.configuration_views[i].recommendedImageRectHeight);
+        }
       }
-#endif
 
       if (xr.sky_type == SKY_TYPE_PROJECTION) {
         sky_draw_cmd = (VkCommandBuffer *)malloc(sizeof(VkCommandBuffer) *
@@ -466,13 +471,13 @@ public:
       }
     }
 
-#if ENABLE_GEARS_LAYER
-    gears = new pipeline_gears(vk_device, gears_buffers[0][0]->render_pass,
-                               pipeline_cache);
-    for (uint32_t i = 0; i < xr.gears.swapchain_length[0]; i++)
-      build_command_buffer(&gears_draw_cmd[i], gears_buffers, xr.view_count, i,
-                           gears);
-#endif
+    if (!settings.disable_gears) {
+      gears = new pipeline_gears(vk_device, gears_buffers[0][0]->render_pass,
+                                 pipeline_cache);
+      for (uint32_t i = 0; i < xr.gears.swapchain_length[0]; i++)
+        build_command_buffer(&gears_draw_cmd[i], gears_buffers, xr.view_count,
+                             i, gears);
+    }
 
     if (xr.sky_type == SKY_TYPE_PROJECTION) {
       equirect = new pipeline_equirect(
@@ -482,9 +487,9 @@ public:
                              equirect);
     }
 
-#if ENABLE_QUAD_LAYERS
-    init_quads();
-#endif
+    if (!settings.disable_quad) {
+      init_quads();
+    }
 
     if (xr.sky_type == SKY_TYPE_EQUIRECT1 || xr.sky_type == SKY_TYPE_EQUIRECT2)
       init_equirect();

@@ -31,10 +31,14 @@ _help_string()
   return "A Vulkan OpenXR demo\n"
          "\n"
          "Options:\n"
-         "  -g, --gpu GPU            GPU to use (default: 0)\n"
-         "  -1  --vulkan_enable      Use XR_KHR_vulkan_enable instead of "
+         "  -d GPU     GPU to use (default: 0)\n"
+         "  -1         Use XR_KHR_vulkan_enable instead of "
          "XR_KHR_vulkan_enable2\n"
-         "  -h, --help               Show this help\n";
+         "  -s         Disable sky layer\n"
+         "  -q         Disable quad layers\n"
+         "  -g         Disable gears layer\n"
+         "  -o         Enable overlay support\n"
+         "  -h         Show this help\n";
 }
 
 static int
@@ -51,36 +55,30 @@ bool
 settings_parse_args(xrg_settings *self, int argc, char *argv[])
 {
   _init(self);
-  int option_index = -1;
-  static const char *optstring = "h1g:";
-
-
-  struct option long_options[] = { { "help", 0, 0, 0 },
-                                   { "vulkan_enable", 0, 0, 0 },
-                                   { "gpu", 1, 0, 0 },
-                                   { 0, 0, 0, 0 } };
-
-  const char *optname;
+  static const char *optstring = "h1d:sqgo";
 
   int opt;
-  while ((opt = getopt_long(argc, argv, optstring, long_options,
-                            &option_index)) != -1) {
+  while ((opt = getopt(argc, argv, optstring)) != -1) {
     if (opt == '?' || opt == ':')
       return false;
 
-    if (option_index != -1)
-      optname = long_options[option_index].name;
-
-    if (opt == 'h' || (optname && strcmp(optname, "help") == 0)) {
+    if (opt == 'h') {
       printf("%s\n", _help_string());
       exit(0);
-    } else if (opt == 'g' || (optname && strcmp(optname, "gpu") == 0)) {
+    } else if (opt == 'd') {
       self->gpu = _parse_id(optarg);
-    } else if (opt == '1' ||
-               (optname && strcmp(optname, "vulkan_enable") == 0)) {
+    } else if (opt == '1') {
       self->vulkan_enable2 = false;
+    } else if (opt == 's') {
+      self->disable_sky = true;
+    } else if (opt == 'q') {
+      self->disable_quad = true;
+    } else if (opt == 'g') {
+      self->disable_gears = true;
+    } else if (opt == 'o') {
+      self->enable_overlay = true;
     } else {
-      xrg_log_f("Unknown option %s", optname);
+      xrg_log_f("Unknown option %c", opt);
     }
   }
 

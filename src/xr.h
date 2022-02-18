@@ -13,6 +13,8 @@
 
 #include <stdbool.h>
 
+#include "settings.h"
+
 #include <vulkan/vulkan.h>
 
 
@@ -21,12 +23,7 @@
 
 #include "vulkan_device.h"
 
-#define ENABLE_GEARS_LAYER 1
-#define ENABLE_QUAD_LAYERS 1
-
-#if ENABLE_QUAD_LAYERS
 #include "xr_quad.h"
-#endif
 
 #include "xr_equirect.h"
 
@@ -82,9 +79,10 @@ typedef struct xr_example
   XrViewConfigurationType view_config_type;
   XrViewConfigurationView* configuration_views;
 
-#if ENABLE_GEARS_LAYER
+
+  // gears layer
   xr_proj gears;
-#endif
+
 
   xr_proj sky;
 
@@ -102,10 +100,11 @@ typedef struct xr_example
   int64_t swapchain_format;
   int64_t depth_swapchain_format;
 
-#if ENABLE_QUAD_LAYERS
+
+  // quad layer
   xr_quad quad;
   xr_quad quad2;
-#endif
+
 
   xr_sky_layer_type sky_type;
 
@@ -114,6 +113,8 @@ typedef struct xr_example
   const XrCompositionLayerBaseHeader** layers;
   uint32_t num_layers;
 
+
+  xrg_settings* settings;
 } xr_example;
 
 bool
