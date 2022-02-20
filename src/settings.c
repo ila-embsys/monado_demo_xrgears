@@ -23,6 +23,9 @@ _init(xrg_settings *self)
 {
   self->gpu = -1;
   self->vulkan_enable2 = true;
+  self->enable_gears = true;
+  self->enable_quad = true;
+  self->enable_sky = true;
 }
 
 static const char *
@@ -70,11 +73,11 @@ settings_parse_args(xrg_settings *self, int argc, char *argv[])
     } else if (opt == '1') {
       self->vulkan_enable2 = false;
     } else if (opt == 's') {
-      self->disable_sky = true;
+      self->enable_sky = false;
     } else if (opt == 'q') {
-      self->disable_quad = true;
+      self->enable_quad = false;
     } else if (opt == 'g') {
-      self->disable_gears = true;
+      self->enable_gears = false;
     } else if (opt == 'o') {
       self->enable_overlay = true;
     } else {

@@ -1074,11 +1074,11 @@ _init_layers(xr_example* self) {
   // sky layer is always "available" to be rendered
   self->num_layers = 1;
 
-  if (!self->settings->disable_gears) {
+  if (self->settings->enable_gears) {
     self->num_layers += 1;
   }
 
-  if (!self->settings->disable_quad) {
+  if (self->settings->enable_quad) {
     self->num_layers += 2;
   }
 
@@ -1109,7 +1109,7 @@ _select_layers(xr_example* self)
     }
   }
 
-  if (!self->settings->disable_gears) {
+  if (self->settings->enable_gears) {
     self->layers[self->num_layers++] =
       (const XrCompositionLayerBaseHeader* const)&self->gears.layer;
 
@@ -1129,7 +1129,7 @@ _select_layers(xr_example* self)
     }
   }
 
-  if (!self->settings->disable_quad) {
+  if (self->settings->enable_quad) {
     self->layers[self->num_layers++] =
       (const XrCompositionLayerBaseHeader* const)&self->quad.layer;
     self->layers[self->num_layers++] =
@@ -1172,7 +1172,7 @@ _cleanup_proj(xr_example* self, xr_proj* proj)
 void
 xr_cleanup(xr_example* self)
 {
-  if (!self->settings->disable_gears) {
+  if (self->settings->enable_gears) {
     _cleanup_proj(self, &self->gears);
   }
 
@@ -1268,7 +1268,7 @@ xr_init_pre_vk(xr_example* self, char* vulkan_extension)
   if (!_check_xr_extensions(self, vulkan_extension))
     return false;
 
-  if (self->settings->disable_sky) {
+  if (!self->settings->enable_sky) {
     self->sky_type = SKY_TYPE_OFF;
   }
 
@@ -1341,7 +1341,7 @@ xr_init_post_vk(xr_example* self,
   if (!_begin_session(self))
     return false;
 
-  if (!self->settings->disable_gears) {
+  if (self->settings->enable_gears) {
     _init_proj(self, XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
                &self->gears, true);
   }

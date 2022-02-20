@@ -82,7 +82,7 @@ public:
   ~xrgears()
   {
 
-    if (!settings.disable_gears) {
+    if (settings.enable_gears) {
       for (uint32_t i = 0; i < 2; i++) {
         for (uint32_t j = 0; j < xr.gears.swapchain_length[i]; j++)
           if (gears_buffers[i][j]) {
@@ -212,7 +212,7 @@ public:
 
     for (uint32_t i = 0; i < 2; i++) {
 
-      if (!settings.disable_gears) {
+      if (settings.enable_gears) {
         if (!xr_proj_acquire_swapchain(&xr, &xr.gears, i)) {
           xrg_log_e("Could not acquire xr swapchain");
           quit = true;
@@ -232,7 +232,7 @@ public:
         _create_projection_from_fov(xr.views[i].fov, xr.near_z, xr.far_z);
       glm::mat4 view = _create_view_from_pose(&xr.views[i].pose);
 
-      if (!settings.disable_gears) {
+      if (settings.enable_gears) {
         glm::vec4 position =
           glm::vec4(xr.views[i].pose.position.x, -xr.views[i].pose.position.y,
                     xr.views[i].pose.position.z, 1.0f);
@@ -245,7 +245,7 @@ public:
         ((pipeline_equirect *)equirect)->update_vp(projection, view, i);
     }
 
-    if (!settings.disable_gears) {
+    if (settings.enable_gears) {
       ((pipeline_gears *)gears)->update_time(animation_timer);
     }
 
@@ -259,7 +259,7 @@ public:
       .commandBufferCount = 1,
     };
 
-    if (!settings.disable_gears) {
+    if (settings.enable_gears) {
       // our command buffers are not tied to the swapchain buffer index,
       // but for convenience we reuse the acquired index of the first view.
       submit_info.pCommandBuffers = &gears_draw_cmd[xr.gears.last_acquired[0]];
@@ -272,7 +272,7 @@ public:
     }
 
     for (uint32_t i = 0; i < 2; i++) {
-      if (!settings.disable_gears) {
+      if (settings.enable_gears) {
         if (!xr_proj_release_swapchain(&xr, &xr.gears, i)) {
           xrg_log_e("Could not release xr swapchain");
           quit = true;
@@ -465,7 +465,7 @@ public:
 
     for (uint32_t i = 0; i < xr.view_count; i++) {
 
-      if (!settings.disable_gears) {
+      if (settings.enable_gears) {
         gears_draw_cmd = (VkCommandBuffer *)malloc(
           sizeof(VkCommandBuffer) * xr.gears.swapchain_length[i]);
         gears_buffers[i] = (vulkan_framebuffer **)malloc(
@@ -499,7 +499,7 @@ public:
       }
     }
 
-    if (!settings.disable_gears) {
+    if (settings.enable_gears) {
       gears = new pipeline_gears(vk_device, gears_buffers[0][0]->render_pass,
                                  pipeline_cache);
       for (uint32_t i = 0; i < xr.gears.swapchain_length[0]; i++)
@@ -515,7 +515,7 @@ public:
                              equirect);
     }
 
-    if (!settings.disable_quad) {
+    if (settings.enable_quad) {
       init_quads();
     }
 
