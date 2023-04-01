@@ -898,6 +898,10 @@ _create_projection_views(xr_example* self, xr_proj* proj)
   for (uint32_t i = 0; i < self->view_count; i++) {
     proj->views[i] = (XrCompositionLayerProjectionView) {
       .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+      .pose = {
+        .position    = { 0.0f, 0.0f, 0.0f },
+        .orientation = { 0.0f, 0.0f, 0.0f, 1.0f },
+      },
       .subImage = {
         .swapchain = proj->swapchains[i],
         .imageRect = {
