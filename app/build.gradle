@@ -15,7 +15,8 @@ android {
 
     defaultConfig {
         applicationId "com.collabora.xrgears"
-        minSdkVersion 24
+        // 26 is minimal for ActivityOptions.setLaunchDisplayId()
+        minSdkVersion 26
         // Version 30 breaks loader
         targetSdkVersion 29
         versionCode 1
@@ -24,6 +25,11 @@ android {
         externalNativeBuild {
             cmake {
                 arguments '-DANDROID_STL=c++_shared'
+            }
+
+            // If necessary, limit app ABI to match ABI of libraries that was built 
+            ndk {
+                abiFilters 'arm64-v8a'
             }
         }
     }
