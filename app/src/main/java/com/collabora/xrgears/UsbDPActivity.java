@@ -1,11 +1,9 @@
 package com.collabora.xrgears;
 
-import android.app.AlertDialog;
 import android.app.NativeActivity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
@@ -22,15 +20,22 @@ public class UsbDPActivity extends NativeActivity {
     private final BroadcastReceiver usbDetachReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             if(intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_DETACHED))
-                finishAndRemoveTask();;
+                finishAndRemoveTask();
         }
     };
 
     protected void configureUsbDetach() {
-        PendingIntent mPermissionIntent = PendingIntent.getBroadcast(getBaseContext(), 0, new Intent(ACTION_USB_PERMISSION), 0);
+        PendingIntent mPermissionIntent = PendingIntent.getBroadcast(getBaseContext(), 0,
+                new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
 
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+        HashMap<String, UsbDevice> deviceList = new HashMap<>();
+
+        while (deviceList.values().size() == 0){
+            deviceList = usbManager.getDeviceList();
+            SystemClock.sleep(500);
+        }
+
         for (UsbDevice usbDevice : deviceList.values()) {
             usbManager.requestPermission(usbDevice, mPermissionIntent);
             while (!usbManager.hasPermission(usbDevice))
