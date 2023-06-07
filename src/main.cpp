@@ -21,6 +21,8 @@
 
 #include "textures.h"
 
+#include "libusb.h"
+
 class xrgears
 {
 public:
@@ -648,6 +650,10 @@ android_main(struct android_app *state)
   android_context_init(&global_android_context, engine->app->activity->vm,
                        engine->app->activity->env,
                        engine->app->activity->clazz);
+
+  libusb_context *ctx = nullptr;
+  libusb_set_option(ctx, LIBUSB_OPTION_ANDROID_JAVAVM, engine->app->activity->vm);        // important for Android
+  libusb_init(&ctx);
 
   while (true) {
     int events;

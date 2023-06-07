@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10.2)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 project("xrgears")
 
 add_definitions(-DXR_OS_ANDROID)
@@ -61,3 +63,9 @@ target_link_libraries(xrgears
 )
 
 add_dependencies(xrgears shadrs)
+
+set("ANDROID")
+find_package(Libusb1 REQUIRED MODULE)
+
+target_include_directories(xrgears PUBLIC ${LIBUSB1_INCLUDE_DIRS})
+target_link_libraries(xrgears ${LIBUSB1_LIBRARIES})
